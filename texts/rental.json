@@ -1,0 +1,19 @@
+{
+  "empty": "فعلاً نزول‌خوری نداریم.",
+  "list": "📜 نزول‌خورها\n{contracts}",
+  "line": "#{id} | {lender} میده: {give} پس می‌گیره: {repay}",
+  "create_prompt": "📜 چی می‌خوای قرض بدی؟",
+  "bad_format": "❌ اشتباهه.",
+  "level_required": "❌ بچه‌ای هنوز.",
+  "active_limit": "❌ یدونه بیشتر نمیشه.",
+  "profit_limit": "❌ خیلی طمع‌کاری. سود رو بیار پایین خون‌آشام.",
+  "created": "✅ ثبت شد.",
+  "not_found": "❌ نیست.",
+  "cannot_accept_own": "❌ نمی‌تونی.",
+  "accepted_borrower": "✅ قرض گرفتی. پس ندی پیدات می‌کنن.",
+  "accepted_lender": "✅ قرض دادی.",
+  "my_empty": "هیچی نداری.",
+  "my_list": "📦 قراردادها:\n{contracts}",
+  "my_line": "#{id} | وضعیت: {status}",
+  "cancelled": "✅ لغو شد."
+}

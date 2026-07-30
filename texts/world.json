@@ -1,0 +1,5 @@
+{
+  "daily_event": "⚠️ زنگ خطر!\n\n{title}\n{desc}\n\nاثر: {effect_text}",
+  "current": "رویداد فعال: {title}",
+  "none": "امروز خبری نیست. فعلاً نفس بکش."
+}

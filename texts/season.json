@@ -1,0 +1,8 @@
+{
+  "text": "⏳ آخرالزمان شماره {id}\n⌛ باقی‌مانده: {left}\n\n🏆 رتبه تو: {rank}\n⭐ امتیاز کل: {score}",
+  "ended": "☄️ دنیا دوباره نابود شد!\nبرندگان:\n{winners}",
+  "winner_line": "{rank}. {name} — {score}",
+  "left_days": "{days} روز",
+  "left_hours": "{hours} ساعت",
+  "left_minutes": "{minutes} دقیقه"
+}

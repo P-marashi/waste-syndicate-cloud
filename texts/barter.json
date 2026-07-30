@@ -1,0 +1,17 @@
+{
+  "empty": "🔁 بازار مبادله خالیه.",
+  "list": "🔁 بازار\n{orders}",
+  "order_line": "#{id} | {seller} میده: {give} می‌خواد: {want}",
+  "create_prompt": "🔁 چی رو با چی عوض می‌کنی؟",
+  "bad_format": "❌ اشتباهه.",
+  "too_many": "❌ خیلی سفارش باز داری.",
+  "created": "✅ ثبت شد.",
+  "not_found": "❌ نیست.",
+  "cannot_accept_own": "❌ مال خودتو نمی‌تونی برداری.",
+  "accepted_buyer": "✅ معامله شد.",
+  "accepted_seller": "✅ جنست رو طاق زدن.",
+  "my_empty": "سفارشی نداری.",
+  "my_list": "📜 بساط تو:\n{orders}",
+  "my_line": "#{id} میدهی: {give}",
+  "cancelled": "✅ لغو کردی."
+}

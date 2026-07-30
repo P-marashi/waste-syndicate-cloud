@@ -1,0 +1,158 @@
+BUILDINGS = {
+    "purifier": {
+        "label": "💧 دستگاه تصفیه آب",
+        "levels": {
+            1: {
+                "cost": {"scrap": 8, "plastic": 4},
+                "prod": 12,
+                "time": 90,
+                "def": 0,
+                "atk": 0,
+            },
+            2: {
+                "cost": {"scrap": 20, "plastic": 10},
+                "prod": 24,
+                "time": 240,
+                "def": 0,
+                "atk": 0,
+            },
+            3: {
+                "cost": {"scrap": 45, "copper": 8},
+                "prod": 42,
+                "time": 600,
+                "def": 0,
+                "atk": 0,
+            },
+            4: {
+                "cost": {"scrap": 90, "copper": 20},
+                "prod": 68,
+                "time": 1200,
+                "def": 0,
+                "atk": 0,
+            },
+            5: {
+                "cost": {"scrap": 180, "copper": 50, "battery": 10},
+                "prod": 105,
+                "time": 2400,
+                "def": 0,
+                "atk": 0,
+            },
+        },
+    },
+    "wall": {
+        "label": "🧱 دیوار دفاعی",
+        "levels": {
+            1: {"cost": {"scrap": 5, "plastic": 3}, "time": 60, "def": 120, "atk": 0},
+            2: {"cost": {"scrap": 15, "plastic": 8}, "time": 180, "def": 280, "atk": 0},
+            3: {"cost": {"scrap": 35, "copper": 5}, "time": 480, "def": 520, "atk": 0},
+            4: {"cost": {"scrap": 70, "copper": 15}, "time": 900, "def": 900, "atk": 0},
+            5: {
+                "cost": {"scrap": 150, "copper": 40, "battery": 8},
+                "time": 1800,
+                "def": 1450,
+                "atk": 0,
+            },
+        },
+    },
+    "armory": {
+        "label": "⚔️ زرادخانه",
+        "levels": {
+            1: {"cost": {"scrap": 6, "plastic": 4}, "time": 60, "atk": 90},
+            2: {"cost": {"scrap": 18, "plastic": 10}, "time": 180, "atk": 210},
+            3: {"cost": {"scrap": 40, "copper": 6}, "time": 480, "atk": 390},
+            4: {"cost": {"scrap": 80, "copper": 18}, "time": 900, "atk": 680},
+            5: {
+                "cost": {"scrap": 160, "copper": 45, "battery": 9},
+                "time": 1800,
+                "atk": 1080,
+            },
+        },
+    },
+    "lab": {
+        "label": "🔬 آزمایشگاه",
+        "levels": {
+            1: {
+                "cost": {"scrap": 10, "glass": 5, "battery": 2},
+                "prod": 0,
+                "time": 180,
+                "def": 0,
+                "atk": 0,
+                "discount": 0.03,
+            },
+            2: {
+                "cost": {"scrap": 25, "glass": 12, "battery": 5},
+                "prod": 0,
+                "time": 450,
+                "def": 0,
+                "atk": 0,
+                "discount": 0.07,
+            },
+            3: {
+                "cost": {"scrap": 60, "glass": 30, "battery": 12},
+                "prod": 0,
+                "time": 900,
+                "def": 0,
+                "atk": 0,
+                "discount": 0.12,
+            },
+        },
+    },
+    "market_stall": {
+        "label": "🏪 غرفه بازار",
+        "levels": {
+            1: {
+                "cost": {"scrap": 8, "plastic": 6},
+                "prod": 0,
+                "time": 120,
+                "def": 0,
+                "atk": 0,
+                "fee_cut": 0.02,
+            },
+            2: {
+                "cost": {"scrap": 20, "plastic": 15},
+                "prod": 0,
+                "time": 300,
+                "def": 0,
+                "atk": 0,
+                "fee_cut": 0.04,
+            },
+            3: {
+                "cost": {"scrap": 50, "plastic": 30},
+                "prod": 0,
+                "time": 720,
+                "def": 0,
+                "atk": 0,
+                "fee_cut": 0.07,
+            },
+        },
+    },
+    "hospital": {
+        "label": "🏥 درمانگاه",
+        "levels": {
+            1: {
+                "cost": {"plastic": 8, "glass": 4},
+                "prod": 0,
+                "time": 150,
+                "def": 40,
+                "atk": 0,
+                "heal_bonus": 5,
+            },
+            2: {
+                "cost": {"plastic": 20, "glass": 12},
+                "prod": 0,
+                "time": 360,
+                "def": 90,
+                "atk": 0,
+                "heal_bonus": 12,
+            },
+            3: {
+                "cost": {"plastic": 45, "glass": 30, "copper": 5},
+                "prod": 0,
+                "time": 840,
+                "def": 170,
+                "atk": 0,
+                "heal_bonus": 25,
+            },
+        },
+    },
+}

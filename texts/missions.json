@@ -1,0 +1,15 @@
+{
+  "text": "📜 مأموریت‌ها\n{lines}",
+  "line": "{ok} {title}\nپیشرفت: {progress}/{goal}\n🎁 {reward}",
+  "in_progress": "🎯 هنوز کاری نکردی که پاداش بخوای تنبل.",
+  "ready_hint": "🎁 پاداش داری، بگیرش.",
+  "claimed": "✅ گرفتی رفت.",
+  "receipt": "✅ واریز شد:",
+  "receipt_line": "• {title}: {reward}",
+  "reward": "🏆 جایزه‌ت: 💧 آب × {water}",
+  "profile_block": "📜 مأموریت‌ها\n{lines}",
+  "profile_hint": "🎯 انجام بده پاداش بگیر.",
+  "ready_in_profile": "🎁 پاداشت حاضره.",
+  "claimed_ready": "✅ گرفتی.",
+  "final_reward": "🎯 همه رو تموم کردی حلالت!"
+}

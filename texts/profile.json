@@ -1,0 +1,8 @@
+{
+  "text": "🏰 گاراژ پادشاهی\n━━━━━━━━━━━━\n👤 نام: {name}\n🌐 سیزن: {season_id}\n⏳ پایان سیزن: {season_left}\n\n👑 جایگاه: {level_label}\n📊 سطح: {level}\n⭐ تجربه: {xp}/{max_xp}\n{xp_bar}\n\n ❤️ جان نیروها: {hp}/100 \n\n⏱️ وضعیت آماده‌باش\n⚡ گشت‌زنی: {scavenge_ready} {scavenge_cd}\n🔍 غارت: {raid_ready} {raid_cd}\n{shield_line}\n🎖️ افتخار: {honor:+d} — {honor_title}\n\n🏦 منابع\n💧 آب: {water}\n♻️ اوراق: {scrap}\n🗑️ پلاستیک: {plastic}\n🫙 شیشه: {glass}\n🔋 باتری: {battery}\n🔶 مس: {copper}\n\n⚔️ قدرت‌ها\n⚔️ حمله: {attack}\n🛡️ دفاع: {defense}\n📃 توان کل: {power}\n\n{upgrades}\n\n🤝 اتحاد\nنام: {alliance}\n💸 سود پخش‌شده: {alliance_shared} 💧\n\n📊 کارنامه\n🔎 کل گشت‌ها: {scavenges}\n✅ موفق: {scavenge_success}\n❌ ناموفق: {scavenge_fail}\n🎯 نرخ موفقیت: {scavenge_rate}\n🏆 غارت‌های انجام‌شده: {raids_done}\n💔 دفعات غارت‌شدن: {raids_received}\n\n⚠️ وضعیت پایگاه: {base_status}\n💡 ارتقای ساختمان‌ها یعنی زنده موندن طولانی‌تر. خسیس‌بازی درنیار.",
+  "shield_active": "🛡️ محافظ: فعال ✅\n⏳ باقی‌مانده: {time}\n📌 تو قوطی کبریت قایم شدی. فعلاً کسی کاریت نداره ترسوا.\n",
+  "shield_off": "🛡️ محافظ: خاموش ❌\n⚠️ پایگاهت رو هواست. هر لحظه ممکنه بریزن لختت کنن.\n",
+  "upgrades_none": "🔨 ارتقای فعال\n✅ کارگرهات دارن مگس می‌پرونن. هیچ شکری نمی‌خوری فعلاً.",
+  "upgrades_title": "🔨 ارتقاهای در جریان",
+  "upgrade_line": "• {label} → سطح {level}\n  ⏳ باقی‌مانده: {time}"
+}

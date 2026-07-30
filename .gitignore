@@ -1,0 +1,80 @@
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# ==========================
+# IDE / Editors
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==========================
+# OS
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Testing / Coverage
+# ==========================
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================
+# Logs
+# ==========================
+*.log
+
+# ==========================
+# Runtime files
+# ==========================
+offset.json
+
+# اگر دیتابیس یا سیو واقعی تولید می‌شود
+*.db
+*.sqlite3
+
+# ==========================
+# Secrets
+# ==========================
+.env
+.env.*
+!.env.example
+
+# ==========================
+# Build
+# ==========================
+build/
+dist/
+*.egg-info/
+
+# ==========================
+# Local archives / backups
+# ==========================
+archived/save_backup.json
+
+# ==========================
+# Temporary
+# ==========================
+*.bak
+*.tmp
+
+# MongoDB
+data/actions-runner/
+actions-runner/
+data/

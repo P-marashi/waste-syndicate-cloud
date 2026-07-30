@@ -1,0 +1,38 @@
+ZONES = {
+    "alley": {
+        "risk": 1,
+        "loot_min": 3,
+        "loot_max": 7,
+        "xp": 2,
+        "cd_min": 8,
+        "label_key": "scavenge_alley",
+        "desc": "کم‌خطر، مناسب شروع",
+    },
+    "suburb": {
+        "risk": 3,
+        "loot_min": 6,
+        "loot_max": 13,
+        "xp": 4,
+        "cd_min": 12,
+        "label_key": "scavenge_suburb",
+        "desc": "ریسک متوسط، لوت خوب",
+    },
+    "center": {
+        "risk": 5,
+        "loot_min": 10,
+        "loot_max": 24,
+        "xp": 7,
+        "cd_min": 18,
+        "label_key": "scavenge_center",
+        "desc": "خطرناک، منابع کمیاب",
+    },
+    "bunker": {
+        "risk": 7,
+        "loot_min": 18,
+        "loot_max": 42,
+        "xp": 11,
+        "cd_min": 25,
+        "label_key": "scavenge_bunker",
+        "desc": "مرگبار، اما پاداش سنگین",
+    },
+}

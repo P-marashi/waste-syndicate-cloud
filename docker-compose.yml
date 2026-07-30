@@ -1,0 +1,32 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: waste_syndicate_mongodb
+
+    restart: unless-stopped
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - ./data/mongodb:/data/db
+
+  game:
+    build: .
+
+    container_name: waste_syndicate_game
+
+    restart: unless-stopped
+
+    depends_on:
+      - mongodb
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./texts:/app/texts
+      - ./offset.json:/app/offset.json
+
+volumes:
+  mongo_data:

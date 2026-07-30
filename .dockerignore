@@ -16,3 +16,5 @@ archived/
 *.pyd
 
 offset.json
+data/mongodb/
+data/

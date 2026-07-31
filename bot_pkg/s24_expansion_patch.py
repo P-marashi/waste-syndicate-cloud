@@ -401,11 +401,9 @@ registry.migrate_game = migrate_game
 def market_keypad() -> dict[str, Any]:
     return registry.make_keypad(
         [
-            [registry.B("market_people"), registry.B("market_create_order")],
-            [registry.B("market_my_orders"), registry.B("market_barter")],
-            [registry.B("market_my_barters"), registry.B("market_resource_rentals")],
-            [registry.B("night_smuggler"), registry.B("market_system_buy")],
-            [registry.B("market_system_sell"), registry.B("market_prices")],
+            [registry.B("buy"), registry.B("sell")],
+            [registry.B("barter"), registry.B("my_orders")],
+            [registry.B("market_resource_rentals"), registry.B("market_prices")],
             [registry.B("main_menu")],
         ]
     )

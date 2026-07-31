@@ -121,13 +121,9 @@ def maybe_spawn_boss(force: bool = False) -> dict[str, Any] | None:
             name=boss["name"],
             hp=registry.fmt_num(boss["max_hp"]),
             players=registry.fmt_num(boss["scaled_for_players"]),
+            hours=registry.BOSS_DURATION // 3600,
         ),
         important=True,
-    )
-    registry.send_group_radio(
-        f"☣️ هشدار بزرگ!\n{boss['name']} بعد از مدت‌ها دوباره ظاهر شد!\n❤️ جان: {registry.fmt_num(boss['max_hp'])}\n⏳ فرصت: {registry.BOSS_DURATION // 3600} ساعت",
-        force=True,
-        reason="boss_spawn",
     )
     registry.save_game()
     return boss
@@ -353,6 +349,8 @@ registry.handle_boss_attack = handle_boss_attack
 
 def handle_city_map(chat_id: str) -> None:
     boss = registry.active_boss()
+    p = registry.get_player(chat_id)
+
     boss_line = (
         registry.T(
             "map.boss_active", name=boss["name"], hp=registry.fmt_num(boss["hp"])
@@ -360,20 +358,27 @@ def handle_city_map(chat_id: str) -> None:
         if boss
         else registry.T("map.boss_none")
     )
-    p = registry.get_player(chat_id)
-    cache_line = registry.T("map.cache_line", count=int(p.get("loot_caches", 0)))
+    cache_count = int(p.get("loot_caches", 0))
+
+    text = f"""🗺️ نقشه شهر متروکه
+━━━━━━━━━━━━
+{boss_line}
+🎁 صندوق‌های غارت: {cache_count} عدد
+━━━━━━━━━━━━
+📍 مناطق گشت‌زنی"""
+
+    keypad_rows = [
+        [registry.B("scavenge_alley"), registry.B("scavenge_suburb")],
+        [registry.B("scavenge_center"), registry.B("scavenge_bunker")],
+        [registry.B("world_boss"), registry.B("lucky_box")],
+        [registry.B("city_news")],
+        [registry.B("main_menu")],
+    ]
+
     registry.send(
         chat_id,
-        registry.T("map.text", boss=boss_line, cache=cache_line),
-        keypad=registry.make_keypad(
-            [
-                [registry.B("scavenge_alley"), registry.B("scavenge_suburb")],
-                [registry.B("scavenge_center"), registry.B("scavenge_bunker")],
-                [registry.B("world_boss"), registry.B("open_cache")],
-                [registry.B("daily_missions"), registry.B("news")],
-                [registry.B("main_menu")],
-            ]
-        ),
+        text,
+        keypad=registry.make_keypad(keypad_rows),
     )
 
 

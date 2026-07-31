@@ -1,0 +1,226 @@
+{
+  "version": 4,
+  "players": {
+    "b0Jgdwc0oGk05c5bf05fd4132d25cc3e": {
+      "name": "",
+      "registered": false,
+      "level": 1,
+      "xp": 0,
+      "hp": 100,
+      "honor": 0,
+      "water": 140,
+      "resources": {
+        "scrap": 55,
+        "plastic": 45,
+        "glass": 25,
+        "battery": 0,
+        "copper": 0
+      },
+      "inventory": {},
+      "buildings": {},
+      "upgrades_in_progress": [],
+      "scavenge_cd": null,
+      "raid_cd": null,
+      "boss_cd": null,
+      "shield_until": null,
+      "alliance": null,
+      "total_attack": 0,
+      "total_defense": 0,
+      "last_passive": "2026-07-31T16:11:18",
+      "registered_at": "2026-07-31T16:11:18",
+      "daily_last": null,
+      "daily_streak": 0,
+      "ref_code": "REF220730",
+      "referred_by": null,
+      "referral_used": false,
+      "referrals_count": 0,
+      "pending_referral": null,
+      "loot_caches": 0,
+      "mission_day": null,
+      "daily_missions": [],
+      "season_points_bonus": 0,
+      "career": {
+        "seasons_played": 0,
+        "best_rank": null,
+        "best_score": 0
+      },
+      "stats": {
+        "scavenges": 0,
+        "scavenge_success": 0,
+        "raids_done": 0,
+        "raids_received": 0,
+        "water_earned": 0,
+        "water_lost": 0,
+        "market_sales": 0,
+        "market_buys": 0,
+        "barter_done": 0,
+        "rentals_given": 0,
+        "rentals_taken": 0,
+        "rental_bad_debt": 0,
+        "alliance_shared": 0,
+        "alliance_received": 0,
+        "boss_damage": 0,
+        "boss_hits": 0,
+        "caches_opened": 0,
+        "legendary_found": 0,
+        "missions_completed": 0,
+        "group_raids": 0,
+        "revenge_wins": 0,
+        "revenge_losses": 0,
+        "bounty_created": 0,
+        "bounty_claimed": 0,
+        "smuggler_buys": 0,
+        "territory_wins": 0
+      },
+      "action_log": [],
+      "banned": false,
+      "ban_reason": "",
+      "banned_at": null,
+      "banned_by": null,
+      "admin_notes": [],
+      "caches": {
+        "rusty": 0,
+        "medium": 0,
+        "military": 0,
+        "smuggler": 0,
+        "legendary": 0
+      },
+      "revenge_cd": null,
+      "season_titles": [],
+      "profile_frames": [],
+      "bad_credit": false,
+      "next_start_bonus_pct": 0.0
+    }
+  },
+  "alliances": {},
+  "market_orders": [],
+  "next_order_id": 1,
+  "barter_orders": [],
+  "next_barter_id": 1,
+  "resource_rentals": [],
+  "next_rental_id": 1,
+  "market_supply": {
+    "scrap": 25,
+    "plastic": 20,
+    "glass": 12,
+    "battery": 3,
+    "copper": 6
+  },
+  "private_messages": [],
+  "next_private_message_id": 1,
+  "admin_logs": [],
+  "next_admin_log_id": 1,
+  "last_system_restock": "2026-07-31",
+  "system_stock_log": [
+    {
+      "date": "2026-07-31",
+      "added": {
+        "scrap": 25,
+        "plastic": 20,
+        "glass": 12,
+        "battery": 3,
+        "copper": 6
+      }
+    }
+  ],
+  "world_event_active": {
+    "id": "government_airdrop",
+    "title": "✈️ ایردراپ دولتی",
+    "desc": "یه هواپیمای ناشناس بسته‌هایی رها کرد.",
+    "effect_text": "به همه منابع تصادفی می‌رسد.",
+    "mods": {},
+    "one_time": "airdrop",
+    "started_at": "2026-07-31T16:11:06",
+    "expires_at": "2026-08-01T16:11:06"
+  },
+  "last_daily_event": "2026-07-31",
+  "world_boss": {
+    "id": "boss-1785501671",
+    "name": "🐉 اژدهای دودزا",
+    "hp": 18600,
+    "max_hp": 18600,
+    "atk": 27,
+    "reward_mod": 1.5,
+    "spawned_at": "2026-07-31T16:11:11",
+    "expires_at": "2026-07-31T20:11:11",
+    "participants": {},
+    "scaled_for_players": 1,
+    "avg_player_power": 90
+  },
+  "last_boss_spawn": "2026-07-31T16:11:11",
+  "news_feed": [
+    {
+      "at": "2026-07-31T16:11:11",
+      "text": "🚨 اوضاع خراب شد! 🐉 اژدهای دودزا دوباره پیداش شد.\n❤️ جون: 18,600\n⏳ فقط 4 ساعت فرصت دارین حسابشو برسین."
+    }
+  ],
+  "last_group_radio_at": "2026-07-31T16:11:18",
+  "last_group_boss_report_at": "2026-07-31T16:11:18",
+  "last_group_rank1": null,
+  "group_radio_log": [
+    {
+      "at": "2026-07-31T16:11:18",
+      "reason": "boss_status",
+      "text": "☣️ باس: 🐉 اژدهای دودزا"
+    },
+    {
+      "at": "2026-07-31T16:11:12",
+      "reason": "important_news",
+      "text": "📡 رادیو\n🚨 اوضاع خراب شد! 🐉 اژدهای دودزا دوباره پیداش شد.\n❤️ جون: 18,600\n⏳ فقط 4 ساعت فرصت دارین حسابشو برسین."
+    },
+    {
+      "at": "2026-07-31T16:11:06",
+      "reason": "daily_event",
+      "text": "🌪️ وضعیت شهر\n✈️ ایردراپ دولتی"
+    }
+  ],
+  "season": {
+    "id": 1,
+    "start": "2026-07-31T16:10:54",
+    "end": "2026-08-21T16:10:54",
+    "archives": []
+  },
+  "chat_states": {
+    "b0Jgdwc0oGk05c5bf05fd4132d25cc3e": {
+      "state": "awaiting_name"
+    }
+  },
+  "next_offset_id": "6a6c97ec9d81d7f533ac788f",
+  "territories": {
+    "iron_workshop": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    },
+    "cable_factory": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    },
+    "burnt_powerplant": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    },
+    "glass_house": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    },
+    "plastic_depot": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    },
+    "old_well": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    },
+    "radio_tower": {
+      "owner": null,
+      "last_attack_at": null,
+      "last_reward_day": null
+    }
+  }
+}

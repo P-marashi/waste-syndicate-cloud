@@ -79,7 +79,87 @@ def handle_buildings_menu(chat_id: str) -> None:
 registry.handle_buildings_menu = handle_buildings_menu
 
 
+def handle_building_detail(chat_id: str, bk: str) -> None:
+    p = registry.get_player(chat_id)
+    registry.passive_income(chat_id)
+    registry.finish_upgrades(p)
+    bd = registry.BUILDINGS[bk]
+    lv = int(p.get("buildings", {}).get(bk, 0))
+    max_lv = max(bd["levels"].keys())
+    
+    # Store last building in chat state for upgrade
+    registry.game.setdefault("chat_states", {})[chat_id] = {
+        "state": "building_detail",
+        "last_building": bk
+    }
+    
+    # Get current level's production/effect
+    current_effect = ""
+    if lv > 0 and lv in bd["levels"]:
+        nd = bd["levels"][lv]
+        current_effect = registry.building_effect_text(nd)
+    
+    inprog = registry.upgrade_in_progress(p, bk)
+    
+    if lv <= 0:
+        status_line = f"❌ ساخته نشده"
+    elif inprog is not None:
+        status_line = f"🔄 در حال ارتقا: {registry.fmt_cd(inprog)}"
+    elif lv >= max_lv:
+        status_line = f"✅ حداکثر سطح ({lv})"
+    else:
+        status_line = f"📊 سطح فعلی: {lv}"
+    
+    text = f"""{registry.B(bk)}
+━━━━━━━━━━━━
+{bd['desc']}
+{status_line}
+اثر فعلی: {current_effect}
+━━━━━━━━━━━━"""
+    
+    keypad_rows = []
+    
+    if lv < max_lv and inprog is None:
+        nd = bd["levels"][lv + 1]
+        cost = dict(nd["cost"])
+        lab_lv = int(p.get("buildings", {}).get("lab", 0))
+        discount = 0.0
+        if lab_lv and bk != "lab":
+            discount = (
+                registry.BUILDINGS["lab"]["levels"].get(lab_lv, {}).get("discount", 0)
+            )
+        if discount:
+            cost = {r: max(1, int(q * (1 - discount))) for r, q in cost.items()}
+            
+        can_upgrade = registry.has_resources(p, cost)
+        upgrade_btn = f"⬆️ ارتقا به سطح {lv + 1}"
+        if can_upgrade:
+            keypad_rows.append([upgrade_btn])
+        else:
+            keypad_rows.append([f"{upgrade_btn} ❌ کمبود منابع"])
+        
+        text += f"""
+📈 ارتقا به سطح {lv + 1}:
+{registry.fmt_res_lines(cost)}
+⏱️ زمان: {registry.fmt_cd(nd["time"])}
+اثر جدید: {registry.building_effect_text(nd)}"""
+    elif inprog is not None:
+        text += f"\n⏳ زمان باقی‌مانده: {registry.fmt_cd(inprog)}"
+    
+    keypad_rows.append([registry.B("buildings"), registry.B("main_menu")])
+    registry.save_game()
+    registry.send(chat_id, text, keypad=registry.make_keypad(keypad_rows))
+
+
+registry.handle_building_detail = handle_building_detail
+
+
 def building_key_from_text(text: str) -> str | None:
+    # Direct button match (new style with emoji)
+    for bk in registry.BUILDINGS:
+        if text == registry.B(bk):
+            return bk
+    # Old style match
     for bk, bd in registry.BUILDINGS.items():
         if text == f"⬆️ {bd['label']}":
             return bk
@@ -168,6 +248,15 @@ def craft_keypad() -> dict[str, Any]:
 
 
 registry.craft_keypad = craft_keypad
+
+def buildings_keypad() -> dict[str, Any]:
+    rows = [
+        [registry.B("purifier"), registry.B("wall")],
+        [registry.B("armory"), registry.B("laboratory")],
+        [registry.B("clinic")],
+        [registry.B("main_menu")],
+    ]
+    return registry.make_keypad(rows)
 
 
 def craft_key_from_text(text: str) -> str | None:

@@ -5,33 +5,118 @@ from typing import Any
 from .registry import registry
 
 
-def handle_inventory(chat_id: str) -> None:
-    p = registry.get_player(chat_id)
+def inventory_resources_text(p: dict[str, Any]) -> str:
+    """نمایش منابع پایه"""
+    lines = [
+        f"🔩 اوراق: {p['resources'].get('scrap', 0):,}",
+        f"🧪 پلاستیک: {p['resources'].get('plastic', 0):,}",
+        f"🔮 شیشه: {p['resources'].get('glass', 0):,}",
+        f"🔋 باتری: {p['resources'].get('battery', 0):,}",
+        f"🪙 مس: {p['resources'].get('copper', 0):,}",
+        f"💧 آب: {p.get('water', 0):,}",
+    ]
+    return "\n".join(lines)
+
+
+registry.inventory_resources_text = inventory_resources_text
+
+
+def inventory_equipment_text(p: dict[str, Any]) -> str:
+    """نمایش تجهیزات ساخته شده"""
     items = []
     for k, qty in p.get("inventory", {}).items():
         if qty > 0 and k in registry.CRAFT_ITEMS:
-            items.append(f"{registry.CRAFT_ITEMS[k]['label']} × {qty}")
-        elif qty > 0 and k in registry.LEGENDARY_ITEMS:
-            items.append(f"✨ {registry.LEGENDARY_ITEMS[k]['label']} × {qty}")
-    if int(p.get("loot_caches", 0)) > 0:
-        items.append(f"🎁 صندوق شانسی × {p.get('loot_caches', 0)}")
-    registry.send(
-        chat_id,
-        registry.T(
-            "inventory.text",
-            items="\n".join(items) or registry.T("inventory.empty"),
-            scrap=p["resources"].get("scrap", 0),
-            plastic=p["resources"].get("plastic", 0),
-            glass=p["resources"].get("glass", 0),
-            battery=p["resources"].get("battery", 0),
-            copper=p["resources"].get("copper", 0),
-            water=p.get("water", 0),
-        ),
-        keypad=registry.main_keypad(chat_id),
-    )
+            item = registry.CRAFT_ITEMS[k]
+            effects = []
+            if item.get("atk"):
+                effects.append(f"⚔️{item['atk']}")
+            if item.get("def"):
+                effects.append(f"🛡️{item['def']}")
+            items.append(
+                f"{item['label']} × {qty} {'(' + ', '.join(effects) + ')' if effects else ''}"
+            )
+    if not items:
+        return "هیچ تجهیزاتی نداری. از 🛠️ کارگاه بساز."
+    return "\n".join(items)
+
+
+registry.inventory_equipment_text = inventory_equipment_text
+
+
+def inventory_special_text(p: dict[str, Any]) -> str:
+    """نمایش آیتم‌های ویژه و لوت‌ها"""
+    parts = []
+    # Legendary items
+    for k, qty in p.get("inventory", {}).items():
+        if qty > 0 and k in registry.LEGENDARY_ITEMS:
+            parts.append(f"✨ {registry.LEGENDARY_ITEMS[k]['label']} × {qty}")
+    # Loot caches
+    caches = int(p.get("loot_caches", 0))
+    if caches > 0:
+        parts.append(f"🎁 صندوق شانسی × {caches}")
+    if not parts:
+        return "آیتم ویژه‌ای نداری."
+    return "\n".join(parts)
+
+
+registry.inventory_special_text = inventory_special_text
+
+
+def handle_inventory(chat_id: str) -> None:
+    """نمایش انبار با سه بخش مجزا"""
+    p = registry.get_player(chat_id)
+
+    text = f"""🎒 انبار
+━━━━━━━━━━━━
+📦 منابع
+{registry.inventory_resources_text(p)}
+━━━━━━━━━━━━
+⚔️ تجهیزات
+{registry.inventory_equipment_text(p)}
+━━━━━━━━━━━━
+⭐ آیتم‌های ویژه
+{registry.inventory_special_text(p)}"""
+
+    keypad_rows = [
+        [registry.B("resources"), registry.B("equipment")],
+        [registry.B("special_items")],
+        [registry.B("main_menu")],
+    ]
+    registry.save_game()
+    registry.send(chat_id, text, keypad=registry.make_keypad(keypad_rows))
 
 
 registry.handle_inventory = handle_inventory
+
+
+def handle_inventory_category(chat_id: str, category: str) -> None:
+    """نمایش دسته‌بندی خاص از انبار"""
+    p = registry.get_player(chat_id)
+
+    if category == "resources":
+        title = "📦 منابع"
+        content = registry.inventory_resources_text(p)
+    elif category == "equipment":
+        title = "⚔️ تجهیزات"
+        content = registry.inventory_equipment_text(p)
+    elif category == "special_items":
+        title = "⭐ آیتم‌های ویژه"
+        content = registry.inventory_special_text(p)
+    else:
+        return registry.handle_inventory(chat_id)
+
+    text = f"""{title}
+━━━━━━━━━━━━
+{content}"""
+
+    keypad_rows = [
+        [registry.B("inventory")],
+        [registry.B("main_menu")],
+    ]
+    registry.send(chat_id, text, keypad=registry.make_keypad(keypad_rows))
+
+
+registry.handle_inventory_category = handle_inventory_category
 
 
 def handle_daily(chat_id: str) -> None:

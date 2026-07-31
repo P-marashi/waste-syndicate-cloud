@@ -4,6 +4,15 @@ from typing import Any
 
 from .registry import registry
 
+LOOT_RATES = {
+    "water": 0.135,  # ۱۳.۵٪
+    "scrap": 0.09,  # ۹٪
+    "plastic": 0.08,  # ۸٪
+    "glass": 0.07,  # ۷٪
+    "battery": 0.06,  # ۶٪
+    "copper": 0.05,  # ۵٪
+}
+
 
 def raid_target_button(name: str) -> str:
     return registry.T("raid.button", name=name)
@@ -303,42 +312,117 @@ def handle_raid(
     raid_note = "\n".join(raid_notes)
     cd = int(32 * 60 * registry.event_mod("raid_cd", 1.0))
     if atk > defense:
-        loot_pct = 0.135 * cfg["loot_mod"] * registry.event_mod("raid_loot", 1.0)
-        gross = min(t.get("water", 0), int(t.get("water", 0) * loot_pct))
-        t["water"] = max(0, int(t.get("water", 0)) - gross)
-        t["stats"]["water_lost"] = t["stats"].get("water_lost", 0) + gross
-        net, note = registry.award_water(chat_id, gross, "raid", alliance_share=True)
+        loot_pct_base = cfg["loot_mod"] * registry.event_mod("raid_loot", 1.0)
+
+        LOOT_RATES = {
+            "water": 0.135,
+            "scrap": 0.09,
+            "plastic": 0.08,
+            "glass": 0.07,
+            "battery": 0.06,
+            "copper": 0.05,
+        }
+
+        looted = {}
+
+        # —— غارت آب ——
+        water_rate = LOOT_RATES["water"] * loot_pct_base
+        gross_water = min(int(t.get("water", 0)), int(t.get("water", 0) * water_rate))
+        if gross_water > 0:
+            t["water"] = max(0, int(t.get("water", 0)) - gross_water)
+            t["stats"]["water_lost"] = t["stats"].get("water_lost", 0) + gross_water
+            looted["water"] = gross_water
+
+        net_water, share_note = 0, ""
+        if gross_water > 0:
+            net_water, share_note = registry.award_water(
+                chat_id, gross_water, "raid", alliance_share=True
+            )
+
+        # —— غارت بقیه منابع ——
+        for (
+            res
+        ) in registry.RESOURCES:  # ["scrap", "plastic", "glass", "battery", "copper"]
+            rate = LOOT_RATES.get(res, 0.05) * loot_pct_base
+            current = int(t.get(res, 0))
+            if current <= 0:
+                continue
+            amount = min(current, int(current * rate))
+            if amount <= 0:
+                continue
+
+            t[res] = current - amount
+            p[res] = p.get(res, 0) + amount
+            looted[res] = amount
+            t["stats"][f"{res}_lost"] = t["stats"].get(f"{res}_lost", 0) + amount
+
+        # —— ساخت متن غنیمت ——
+        loot_parts = []
+        if gross_water:
+            loot_parts.append(
+                f"{registry.RES_ICON['water']} آب: {gross_water:,} (خالص: {net_water:,})"
+            )
+
+        for res in registry.RESOURCES:
+            if res in looted:
+                icon = registry.RES_ICON.get(res, "📦")
+                loot_parts.append(f"{icon} {res}: {looted[res]:,}")
+
+        loot_summary = "\n".join(loot_parts) if loot_parts else "هیچی پیدا نشد 😢"
+
+        # —— بقیه منطق برد ——
         p["honor"] += int(cfg["honor_win"])
-        t["honor"] -= 4
+        t["honor"] = max(0, t.get("honor", 0) - 4)
         leveled = registry.add_xp(p, int(cfg["xp"]))
         registry.set_cd(p, "raid", cd)
+
         registry.log_action(
             chat_id,
             "raid_win",
             {
                 "target": target_id,
-                "gross": gross,
-                "net": net,
+                "looted": looted,
                 "bucket": bucket_key,
                 "precise": precise,
                 "drone_used": drone_used,
             },
         )
         registry.log_action(
-            target_id, "raid_lost", {"attacker": chat_id, "lost": gross}
+            target_id,
+            "raid_lost",
+            {
+                "attacker": chat_id,
+                "lost": looted,
+            },
         )
-        registry.register_revenge_target(chat_id, target_id, gross)
+
+        registry.register_revenge_target(chat_id, target_id, gross_water)
         registry.complete_bounty_contracts(chat_id, target_id)
+
         registry.add_news(
-            f"⚔️ {registry.player_name(chat_id)} به {registry.player_name(target_id)} حمله کرد و {gross:,} آب غارت کرد."
+            f"⚔️ {registry.player_name(chat_id)} به {registry.player_name(target_id)} حمله کرد و غارت کرد."
         )
+
+        # پیام به قربانی
+        lost_parts = []
+        if gross_water:
+            lost_parts.append(f"{registry.RES_ICON['water']} {gross_water:,}")
+        for res in registry.RESOURCES:
+            if res in looted:
+                lost_parts.append(f"{registry.RES_ICON[res]} {looted[res]:,}")
+        lost_summary = " | ".join(lost_parts) if lost_parts else "چیزی"
+
         registry.send(
             target_id,
             registry.T(
-                "raid.victim", attacker=registry.display_name(p.get("name")), lost=gross
+                "raid.victim",
+                attacker=registry.display_name(p.get("name")),
+                lost=lost_summary,
             ),
             keypad=registry.main_keypad(target_id),
         )
+
+        # پیام به مهاجم
         registry.send(
             chat_id,
             registry.T(
@@ -347,46 +431,13 @@ def handle_raid(
                 target=registry.display_name(t.get("name")),
                 atk=f"{int(atk):,}",
                 defense=f"{int(defense):,}",
-                gross=f"{gross:,}",
-                net=f"{net:,}",
-                raid_note=raid_note + "\n" if raid_note else "",
-                share_note=note,
+                loot_summary=loot_summary,
+                raid_note=(raid_note + "\n") if raid_note else "",
+                share_note=(share_note + "\n") if share_note else "",
                 honor=p["honor"],
-                level_msg=registry.T("scavenge.level_up", level=p["level"])
+                level_msg=(registry.T("scavenge.level_up", level=p["level"]) + "\n")
                 if leveled
                 else "",
-                cooldown=registry.fmt_cd(cd),
-            ),
-            keypad=registry.main_keypad(chat_id),
-        )
-    else:
-        dmg = random.randint(10, 28)
-        p["hp"] = max(1, p.get("hp", 100) - dmg)
-        p["honor"] += int(cfg["honor_lose"])
-        t["honor"] += 4
-        registry.set_cd(p, "raid", cd)
-        registry.log_action(
-            chat_id,
-            "raid_lose",
-            {
-                "target": target_id,
-                "damage": dmg,
-                "bucket": bucket_key,
-                "precise": precise,
-                "drone_used": drone_used,
-            },
-        )
-        registry.send(
-            chat_id,
-            registry.T(
-                "raid.lose",
-                raid_type=raid_type,
-                target=registry.display_name(t.get("name")),
-                atk=f"{int(atk):,}",
-                defense=f"{int(defense):,}",
-                raid_note=raid_note + "\n" if raid_note else "",
-                hp=p["hp"],
-                honor=p["honor"],
                 cooldown=registry.fmt_cd(cd),
             ),
             keypad=registry.main_keypad(chat_id),

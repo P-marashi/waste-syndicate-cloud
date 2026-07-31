@@ -45,5 +45,9 @@
   "group_raid_can_start": "✅ همه هار شدن. حمله رو شروع کن.",
   "group_raid_not_all_ready": "❌ تا همه آماده نشن نمیشه رفت دعوا.",
   "group_raid_cancelled": "❌ آماده‌باش لغو شد.",
-  "group_raid_victim": "🚨 باند {alliance} ریختن سرت و غارتت کردن!"
+  "group_raid_victim": "🚨 باند {alliance} ریختن سرت و غارتت کردن!",
+  "members_list": "👥 اعضای کارتل: {name}\n━━━━━━━━━━━━\nتعداد: {count}/{max_members}\n━━━━━━━━━━━━\n{members}",
+  "treasury_view": "🏦 خزانه کارتل: {name}\n━━━━━━━━━━━━\n💰 موجودی خزانه: {vault} 💧\n📊 کل ساخته‌شده: {total_shared} 💧\n👤 سهم تو: {my_shared} 💧\n━━━━━━━━━━━━\n🏷️ کارتل: سطح {cartel_level} — {cartel_label}\n⬆️ هزینه ارتقا: {next_upgrade_cost}",
+  "requests_list": "📨 درخواست‌های عضویت ({name})\n━━━━━━━━━━━━\nتعداد: {count}\n━━━━━━━━━━━━\n{list}",
+  "no_requests": "📭 درخواست جدیدی نیومده."
 }

@@ -36,6 +36,23 @@ def ux_global_nav_buttons() -> set[str]:
         "bounty_board",
         "territories",
         "alliance_missions",
+        "alliance_members",
+        "alliance_treasury",
+        "alliance_requests",
+        "settings",
+        "history",
+        "inbox",
+        "game_news",
+        "search_player",
+        "achievements",
+        "stats",
+        "resources",
+        "equipment",
+        "special_items",
+        "buy",
+        "sell",
+        "barter",
+        "my_orders",
         "admin_panel",
     ]
     vals = {
@@ -63,22 +80,3 @@ def clear_chat_state(chat_id: str) -> bool:
 
 
 registry.clear_chat_state = clear_chat_state
-
-
-def main_keypad(chat_id: str | None = None, sender_id: str = "") -> dict[str, Any]:
-    """منوی اصلی مرتب\u200cشده بر اساس کارهای پرتکرار و هاب\u200cهای مهم."""
-    rows = [
-        [registry.B("profile"), registry.B("city_map")],
-        [registry.B("market"), registry.B("attack")],
-        [registry.B("craft"), registry.B("buildings")],
-        [registry.B("alliance"), registry.B("inventory")],
-        [registry.B("season"), registry.B("leaderboard")],
-        [registry.B("invite")],
-        [registry.B("help")],
-    ]
-    if chat_id and registry.is_admin(chat_id, sender_id):
-        rows.append([registry.B("admin_panel")])
-    return registry.make_keypad(rows)
-
-
-registry.main_keypad = main_keypad

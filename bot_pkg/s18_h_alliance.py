@@ -14,11 +14,11 @@ def alliance_keypad(chat_id: str) -> dict[str, Any]:
             ]
         )
     rows = [
-        [registry.B("alliance_group_raid"), registry.B("alliance_vault")],
-        [registry.B("alliance_leave")],
+        [registry.B("alliance_members"), registry.B("alliance_treasury")],
+        [registry.B("alliance_requests"), registry.B("alliance_group_raid")],
     ]
     if al.get("owner") == chat_id:
-        rows.insert(0, [registry.B("alliance_manage")])
+        rows.append([registry.B("alliance_manage")])
     rows.append([registry.B("main_menu")])
     return registry.make_keypad(rows)
 
@@ -293,9 +293,9 @@ def handle_alliance_manage(chat_id: str) -> None:
         keypad=registry.make_keypad(
             [
                 [registry.B("alliance_open_toggle"), registry.B("alliance_applicants")],
-                [registry.B("alliance_kick"), registry.B("alliance_vault")],
-                [registry.B("alliance_upgrade"), registry.B("alliance_group_raid")],
-                [registry.B("alliance"), registry.B("main_menu")],
+                [registry.B("alliance_kick"), registry.B("alliance_upgrade")],
+                [registry.B("alliance")],
+                [registry.B("main_menu")],
             ]
         ),
     )
@@ -304,80 +304,107 @@ def handle_alliance_manage(chat_id: str) -> None:
 registry.handle_alliance_manage = handle_alliance_manage
 
 
-def handle_toggle_alliance(chat_id: str) -> None:
+# ── New: Alliance Members ──
+
+
+def handle_alliance_members(chat_id: str) -> None:
     al = registry.player_alliance(chat_id)
-    if not al or al.get("owner") != chat_id:
+    if not al:
         registry.send(
             chat_id,
-            registry.T("alliance.not_owner"),
+            registry.T("alliance.none"),
             keypad=registry.alliance_keypad(chat_id),
         )
         return
-    al["open"] = not bool(al.get("open"))
-    registry.save_game()
+    members = []
+    for cid in al.get("members", []):
+        mp = registry.game["players"].get(cid)
+        if mp:
+            registry.recalc_power(mp)
+            owner_tag = " 👑" if cid == al.get("owner") else ""
+            members.append(
+                f"• {mp.get('name', 'بی‌نام')}{owner_tag}"
+                f" — سطح {mp.get('level', 1)}"
+                f" | قدرت {mp.get('total_attack', 0) + mp.get('total_defense', 0):,}"
+            )
+    text = registry.T(
+        "alliance.members_list",
+        name=al.get("name"),
+        count=len(members),
+        max_members=registry.ALLIANCE_MAX,
+        members="\n".join(members) or "هیچ عضوی نیست!",
+    )
     registry.send(
         chat_id,
-        registry.T("alliance.mode_changed", mode=registry.alliance_mode_text(al)),
-        keypad=registry.alliance_keypad(chat_id),
+        text,
+        keypad=registry.make_keypad(
+            [
+                [registry.B("alliance")],
+                [registry.B("main_menu")],
+            ]
+        ),
     )
 
 
-registry.handle_toggle_alliance = handle_toggle_alliance
+registry.handle_alliance_members = handle_alliance_members
 
 
-def handle_alliance_upgrade(chat_id: str) -> None:
+# ── New: Alliance Treasury ──
+
+
+def handle_alliance_treasury(chat_id: str) -> None:
     al = registry.player_alliance(chat_id)
-    if not al or al.get("owner") != chat_id:
+    if not al:
         registry.send(
             chat_id,
-            registry.T("alliance.not_owner"),
+            registry.T("alliance.none"),
             keypad=registry.alliance_keypad(chat_id),
         )
         return
-    lv = registry.cartel_level(al)
-    if lv >= registry.MAX_CARTEL_LEVEL:
-        registry.send(
-            chat_id,
-            registry.T("alliance.upgrade_max"),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    cost = registry.cartel_next_upgrade_cost(al)
+    p = registry.get_player(chat_id)
     vault = int(al.get("vault", 0))
-    if vault < cost:
-        registry.send(
-            chat_id,
-            registry.T("alliance.upgrade_not_enough", need=cost, have=vault),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    al["vault"] = vault - cost
-    al["level"] = lv + 1
-    registry.alliance_log(
-        al, "cartel_upgrade", {"from_level": lv, "to_level": lv + 1, "cost": cost}
+    shared = int(al.get("total_shared", 0))
+    my_shared = int(p.get("stats", {}).get("alliance_shared", 0))
+    lv = registry.cartel_level(al)
+    cartel_data = registry.cartel_level_data(al)
+    next_cost = registry.cartel_next_upgrade_cost(al)
+    text = registry.T(
+        "alliance.treasury_view",
+        name=al.get("name"),
+        vault=f"{vault:,}",
+        total_shared=f"{shared:,}",
+        my_shared=f"{my_shared:,}",
+        cartel_level=lv,
+        cartel_label=cartel_data.get("label") if cartel_data else "-",
+        next_upgrade_cost=(
+            f"{next_cost:,}" if next_cost else registry.T("alliance.max_level")
+        ),
     )
-    registry.save_game()
-    msg = registry.T(
-        "alliance.upgraded",
-        level=al["level"],
-        label=registry.cartel_level_data(al).get("label"),
-        cost=cost,
-        perks=registry.cartel_perks_text(al),
+    registry.send(
+        chat_id,
+        text,
+        keypad=registry.make_keypad(
+            [
+                [registry.B("alliance_upgrade"), registry.B("alliance_vault")],
+                [registry.B("alliance")],
+                [registry.B("main_menu")],
+            ]
+        ),
     )
-    for cid in al.get("members", []):
-        if cid in registry.game["players"]:
-            registry.send(cid, msg, keypad=registry.main_keypad(cid))
 
 
-registry.handle_alliance_upgrade = handle_alliance_upgrade
+registry.handle_alliance_treasury = handle_alliance_treasury
 
 
-def handle_applicants(chat_id: str) -> None:
+# ── New: Alliance Requests ──
+
+
+def handle_alliance_requests(chat_id: str) -> None:
     al = registry.player_alliance(chat_id)
-    if not al or al.get("owner") != chat_id:
+    if not al:
         registry.send(
             chat_id,
-            registry.T("alliance.not_owner"),
+            registry.T("alliance.none"),
             keypad=registry.alliance_keypad(chat_id),
         )
         return
@@ -385,140 +412,29 @@ def handle_applicants(chat_id: str) -> None:
     if not apps:
         registry.send(
             chat_id,
-            registry.T("alliance.applicants_empty"),
+            registry.T("alliance.no_requests"),
             keypad=registry.alliance_keypad(chat_id),
         )
         return
-    lines = [f"- {registry.player_name(cid)}" for cid in apps]
+    lines = []
     rows = []
     for cid in apps[:6]:
-        rows.append(
-            [f"قبول: {registry.player_name(cid)}", f"رد: {registry.player_name(cid)}"]
-        )
-    rows.append([registry.B("alliance_manage"), registry.B("main_menu")])
+        mp = registry.game["players"][cid]
+        lines.append(f"• {mp.get('name', 'بی‌نام')} — سطح {mp.get('level', 1)}")
+        rows.append([f"قبول: {mp.get('name')}", f"رد: {mp.get('name')}"])
+    text = registry.T(
+        "alliance.requests_list",
+        name=al.get("name"),
+        count=len(apps),
+        list="\n".join(lines),
+    )
+    rows.append([registry.B("alliance")])
+    rows.append([registry.B("main_menu")])
     registry.send(
         chat_id,
-        registry.T("alliance.applicants", lines="\n".join(lines)),
+        text,
         keypad=registry.make_keypad(rows),
     )
 
 
-registry.handle_applicants = handle_applicants
-
-
-def handle_applicant_decision(chat_id: str, text: str) -> None:
-    al = registry.player_alliance(chat_id)
-    if not al or al.get("owner") != chat_id:
-        registry.send(
-            chat_id,
-            registry.T("alliance.not_owner"),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    accept = text.startswith("قبول:")
-    name = text.split(":", 1)[1].strip()
-    target = registry.find_player_by_name(name, al.get("applicants", []))
-    if not target:
-        registry.send(
-            chat_id,
-            registry.T("alliance.kick_not_found"),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    al["applicants"].remove(target)
-    if accept:
-        if len(al.get("members", [])) >= registry.ALLIANCE_MAX:
-            registry.send(
-                chat_id,
-                registry.T("alliance.full"),
-                keypad=registry.alliance_keypad(chat_id),
-            )
-            return
-        al["members"].append(target)
-        registry.game["players"][target]["alliance"] = al["name"]
-        registry.save_game()
-        registry.send(
-            chat_id,
-            registry.T("alliance.approved", player=registry.player_name(target)),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        registry.send(
-            target,
-            registry.T("alliance.joined", name=al["name"]),
-            keypad=registry.main_keypad(target),
-        )
-    else:
-        registry.save_game()
-        registry.send(
-            chat_id,
-            registry.T("alliance.rejected", player=registry.player_name(target)),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-
-
-registry.handle_applicant_decision = handle_applicant_decision
-
-
-def handle_kick_prompt(chat_id: str) -> None:
-    al = registry.player_alliance(chat_id)
-    if not al or al.get("owner") != chat_id:
-        registry.send(
-            chat_id,
-            registry.T("alliance.not_owner"),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    members = [cid for cid in al.get("members", []) if cid != chat_id]
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_kick_member"}
-    registry.save_game()
-    registry.send(
-        chat_id,
-        registry.T(
-            "alliance.kick_prompt",
-            members="\n".join(f"- {registry.player_name(cid)}" for cid in members)
-            or "عضوی نداری",
-        ),
-        keypad=registry.make_keypad(
-            [[registry.B("alliance_manage"), registry.B("main_menu")]]
-        ),
-    )
-
-
-registry.handle_kick_prompt = handle_kick_prompt
-
-
-def handle_kick_member(chat_id: str, text: str) -> None:
-    al = registry.player_alliance(chat_id)
-    if not al or al.get("owner") != chat_id:
-        registry.send(
-            chat_id,
-            registry.T("alliance.not_owner"),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    members = [cid for cid in al.get("members", []) if cid != chat_id]
-    target = registry.find_player_by_name(text, members)
-    if not target:
-        registry.send(
-            chat_id,
-            registry.T("alliance.kick_not_found"),
-            keypad=registry.alliance_keypad(chat_id),
-        )
-        return
-    al["members"].remove(target)
-    registry.game["players"][target]["alliance"] = None
-    registry.game["chat_states"].pop(chat_id, None)
-    registry.save_game()
-    registry.send(
-        chat_id,
-        registry.T("alliance.kicked", player=registry.player_name(target)),
-        keypad=registry.alliance_keypad(chat_id),
-    )
-    registry.send(
-        target,
-        registry.T("alliance.kicked_notice", alliance=al["name"]),
-        keypad=registry.main_keypad(target),
-    )
-
-
-registry.handle_kick_member = handle_kick_member
+registry.handle_alliance_requests = handle_alliance_requests

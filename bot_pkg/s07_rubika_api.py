@@ -52,17 +52,19 @@ registry.make_keypad = make_keypad
 
 def main_keypad(chat_id: str | None = None, sender_id: str = "") -> dict[str, Any]:
     rows = [
-        [registry.B("profile"), registry.B("city_map")],
-        [registry.B("market"), registry.B("buildings")],
-        [registry.B("craft"), registry.B("attack")],
-        [registry.B("alliance"), registry.B("inventory")],
-        [registry.B("daily_missions"), registry.B("daily")],
+        [registry.B("city_map"), registry.B("garage")],
+        [registry.B("attack"), registry.B("alliance")],
+        [registry.B("buildings"), registry.B("craft")],
+        [registry.B("market"), registry.B("inventory")],
+        [registry.B("daily_missions"), registry.B("events")],
         [registry.B("season"), registry.B("leaderboard")],
-        [registry.B("messages"), registry.B("event")],
-        [registry.B("help")],
+        [registry.B("messages"), registry.B("more")],
+        [registry.B("main_menu")],
     ]
+
     if chat_id and registry.is_admin(chat_id, sender_id):
         rows.append([registry.B("admin_panel")])
+
     return registry.make_keypad(rows)
 
 

@@ -1,18 +1,16 @@
-import re
-
 from .registry import registry
+from .services import registration_service
 
 
 def extract_ref_from_start(text: str) -> str | None:
-    m = re.search("REF\\d{4,}", text or "", re.IGNORECASE)
-    return m.group(0).upper() if m else None
+    return registration_service.extract_ref_from_start(text)
 
 
 registry.extract_ref_from_start = extract_ref_from_start
 
 
 def normalize_unique_name(name: str) -> str:
-    return " ".join(name.strip().lower().split())
+    return registration_service.normalize_unique_name(name)
 
 
 registry.normalize_unique_name = normalize_unique_name
@@ -34,15 +32,13 @@ registry.garage_name_exists = garage_name_exists
 
 def is_reserved_registration_name(value: str) -> bool:
     """Prevent keypad/menu labels from being saved as garage names."""
-    raw = (value or "").strip()
-    norm = registry.normalize_unique_name(raw)
     button_labels = []
     try:
         button_labels = [str(v) for v in registry.TEXTS.get("buttons", {}).values()]
     except Exception:
         button_labels = []
     reserved = {"/start", "start", "شروع", "منوی اصلی", "↩️ منوی اصلی", *button_labels}
-    return norm in {registry.normalize_unique_name(x) for x in reserved if x}
+    return registration_service.is_reserved_name(value, reserved)
 
 
 registry.is_reserved_registration_name = is_reserved_registration_name

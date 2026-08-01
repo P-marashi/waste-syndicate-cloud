@@ -1,4 +1,9 @@
+# Deprecated re-export: kept only so any stray external import of
+# META_SCALAR_KEYS doesn't hard-crash. The authoritative list now lives in
+# repositories/meta_repository.py (SCALAR_KEYS) and collections.py
+# (ID_LIST_KEYS / LOG_KEYS).
 from ..registry import registry
+from .repositories.meta_repository import SCALAR_KEYS as META_SCALAR_KEYS  # noqa: F401
 
 _mongo_client = None
 _db = None
@@ -19,41 +24,8 @@ def get_db():
 
     _db = _mongo_client[registry.MONGO_DB]
 
-    _db.players.create_index("name")
-    _db.players.create_index("banned")
-    _db.players.create_index("alliance")
+    from .collections import build_repositories
+
+    build_repositories(_db, ensure_indexes=True)
 
     return _db
-
-
-META_SCALAR_KEYS = (
-    "version",
-    "next_order_id",
-    "next_barter_id",
-    "next_rental_id",
-    "next_private_message_id",
-    "next_admin_log_id",
-    "market_supply",
-    "last_system_restock",
-    "world_event_active",
-    "last_daily_event",
-    "world_boss",
-    "last_boss_spawn",
-    "last_group_radio_at",
-    "last_group_boss_report_at",
-    "last_group_rank1",
-    "season",
-    "chat_states",
-    "next_offset_id",
-)
-
-META_LIST_KEYS = (
-    "market_orders",
-    "barter_orders",
-    "resource_rentals",
-    "private_messages",
-    "admin_logs",
-    "news_feed",
-    "group_radio_log",
-    "system_stock_log",
-)

@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Any
 
 from ..registry import registry
+from ..services import group_raid_service
 
 
 def alliance_group_raid_target(al: dict[str, Any]) -> dict[str, Any]:
@@ -14,10 +15,8 @@ def alliance_group_raid_target(al: dict[str, Any]) -> dict[str, Any]:
         if registry.is_shielded(p):
             continue
         registry.recalc_power(p)
-        power = (
-            int(p.get("total_defense", 0))
-            + int(p.get("total_attack", 0) * 0.45)
-            + int(p.get("level", 1)) * 90
+        power = group_raid_service.candidate_target_power(
+            p.get("total_defense", 0), p.get("total_attack", 0), p.get("level", 1)
         )
         candidates.append((cid, p, power))
     if candidates:
@@ -28,7 +27,7 @@ def alliance_group_raid_target(al: dict[str, Any]) -> dict[str, Any]:
             "type": "player",
             "chat_id": cid,
             "name": p.get("name"),
-            "defense": max(900, int(power * random.uniform(1.05, 1.35))),
+            "defense": group_raid_service.roll_player_target_defense(power),
             "water": int(p.get("water", 0)),
         }
     level = registry.cartel_level(al)
@@ -42,8 +41,8 @@ def alliance_group_raid_target(al: dict[str, Any]) -> dict[str, Any]:
                 "🦂 لانه فرماندهان اسیدی",
             ]
         ),
-        "defense": random.randint(2800, 4600) * max(1, level),
-        "water": random.randint(1200, 2600),
+        "defense": group_raid_service.roll_npc_target_defense(level),
+        "water": group_raid_service.roll_npc_target_water(),
     }
 
 
@@ -275,20 +274,16 @@ def handle_alliance_group_start(chat_id: str) -> None:
         total_power += int(mp.get("total_attack", 0)) + int(mp.get("level", 1)) * 25
     target = session.get("target", {})
     enemy_def = int(target.get("defense", 1000))
-    roll = random.uniform(0.82, 1.18)
-    effective = int(total_power * roll)
+    effective = group_raid_service.roll_group_attack_power(total_power)
     al["group_raid_cd"] = registry.iso(registry.now() + timedelta(hours=4))
     al.pop("group_raid_session", None)
-    if effective >= enemy_def:
+    if group_raid_service.is_group_raid_win(effective, enemy_def):
         if (
             target.get("type") == "player"
             and target.get("chat_id") in registry.game["players"]
         ):
             victim = registry.game["players"][target["chat_id"]]
-            steal = min(
-                int(victim.get("water", 0)),
-                max(120, int(victim.get("water", 0) * random.uniform(0.08, 0.18))),
-            )
+            steal = group_raid_service.roll_player_target_steal(victim.get("water", 0))
             victim["water"] = max(0, int(victim.get("water", 0)) - steal)
             victim.setdefault("stats", {})["water_lost"] = (
                 victim.get("stats", {}).get("water_lost", 0) + steal
@@ -302,25 +297,20 @@ def handle_alliance_group_start(chat_id: str) -> None:
                 ),
                 keypad=registry.main_keypad(target["chat_id"]),
             )
-            gross = (
-                steal
-                + random.randint(250, 650)
-                + len(member_ids) * random.randint(45, 120)
-            )
+            gross = group_raid_service.roll_player_target_gross(steal, len(member_ids))
         else:
-            gross = (
-                random.randint(700, 1400)
-                + len(member_ids) * random.randint(90, 180)
-                + registry.cartel_level(al) * 260
+            gross = group_raid_service.roll_npc_target_gross(
+                len(member_ids), registry.cartel_level(al)
             )
-        vault_add = int(gross * 0.45)
+        each, vault_add = group_raid_service.split_group_raid_reward(
+            gross, len(member_ids)
+        )
         al["vault"] = int(al.get("vault", 0)) + vault_add
-        each = max(1, int((gross - vault_add) / max(1, len(member_ids))))
         for cid in member_ids:
             mp = registry.game["players"][cid]
             mp["water"] = int(mp.get("water", 0)) + each
             mp["loot_caches"] = int(mp.get("loot_caches", 0)) + (
-                1 if random.random() < 0.08 else 0
+                1 if group_raid_service.rolls_bonus_cache() else 0
             )
             mp.setdefault("stats", {})["group_raids"] = (
                 mp.get("stats", {}).get("group_raids", 0) + 1
@@ -354,7 +344,7 @@ def handle_alliance_group_start(chat_id: str) -> None:
             vault=registry.fmt_num(vault_add),
         )
     else:
-        dmg = random.randint(8, 22)
+        dmg = group_raid_service.roll_group_raid_loss_damage()
         for cid in member_ids:
             mp = registry.game["players"][cid]
             mp["hp"] = max(1, int(mp.get("hp", 100)) - dmg)

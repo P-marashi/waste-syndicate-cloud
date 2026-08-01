@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any
 
 from .registry import registry
+from .services import building_service
 
 
 def building_effect_text(data: dict[str, Any]) -> str:
@@ -122,14 +123,11 @@ def handle_building_detail(chat_id: str, bk: str) -> None:
     if lv < max_lv and inprog is None:
         nd = bd["levels"][lv + 1]
         cost = dict(nd["cost"])
-        lab_lv = int(p.get("buildings", {}).get("lab", 0))
-        discount = 0.0
-        if lab_lv and bk != "lab":
-            discount = (
-                registry.BUILDINGS["lab"]["levels"].get(lab_lv, {}).get("discount", 0)
-            )
+        discount = building_service.lab_discount_rate(
+            p.get("buildings", {}), registry.BUILDINGS["lab"]["levels"], exclude_key=bk
+        )
         if discount:
-            cost = {r: max(1, int(q * (1 - discount))) for r, q in cost.items()}
+            cost = building_service.apply_discount(cost, discount)
             
         can_upgrade = registry.has_resources(p, cost)
         upgrade_btn = f"⬆️ ارتقا به سطح {lv + 1}"
@@ -197,14 +195,11 @@ def handle_upgrade(chat_id: str, bk: str) -> None:
         return
     nd = bd["levels"][lv + 1]
     cost = dict(nd["cost"])
-    lab_lv = int(p.get("buildings", {}).get("lab", 0))
-    discount = 0.0
-    if lab_lv and bk != "lab":
-        discount = (
-            registry.BUILDINGS["lab"]["levels"].get(lab_lv, {}).get("discount", 0)
-        )
+    discount = building_service.lab_discount_rate(
+        p.get("buildings", {}), registry.BUILDINGS["lab"]["levels"], exclude_key=bk
+    )
     if discount:
-        cost = {r: max(1, int(q * (1 - discount))) for r, q in cost.items()}
+        cost = building_service.apply_discount(cost, discount)
     if not registry.has_resources(p, cost):
         registry.send(
             chat_id,
@@ -270,12 +265,12 @@ registry.craft_key_from_text = craft_key_from_text
 
 
 def discounted_craft_cost(p: dict[str, Any], cost: dict[str, int]) -> dict[str, int]:
-    disc = registry.event_mod("craft_discount", 0.0)
-    lab_lv = int(p.get("buildings", {}).get("lab", 0))
-    if lab_lv:
-        disc += registry.BUILDINGS["lab"]["levels"].get(lab_lv, {}).get("discount", 0)
-    disc = min(0.35, disc)
-    return {r: max(1, int(q * (1 - disc))) for r, q in cost.items()}
+    rate = building_service.craft_discount_rate(
+        p.get("buildings", {}),
+        registry.BUILDINGS["lab"]["levels"],
+        event_discount=registry.event_mod("craft_discount", 0.0),
+    )
+    return building_service.apply_discount(cost, rate)
 
 
 registry.discounted_craft_cost = discounted_craft_cost
@@ -366,7 +361,10 @@ def handle_craft(chat_id: str, item_key: str) -> None:
         for u in p.get("upgrades_in_progress", []):
             finish = registry.fromiso(u.get("finish"), registry.now())
             left = max(0, (finish - registry.now()).total_seconds())
-            u["finish"] = registry.iso(registry.now() + timedelta(seconds=left * 0.5))
+            u["finish"] = registry.iso(
+                registry.now()
+                + timedelta(seconds=building_service.halve_remaining_seconds(left))
+            )
         msg = registry.T("craft.repair")
     elif spec:
         p.setdefault("inventory", {})[item_key] = (
@@ -384,8 +382,10 @@ def handle_craft(chat_id: str, item_key: str) -> None:
                 .get(h_lv, {})
                 .get("heal_bonus", 0)
             )
-        heal = min(100 - p.get("hp", 100), item["heal"] + heal_bonus)
-        p["hp"] = min(100, p.get("hp", 100) + heal)
+        heal, new_hp = building_service.compute_heal(
+            p.get("hp", 100), item["heal"], heal_bonus=heal_bonus
+        )
+        p["hp"] = new_hp
         msg = registry.T("craft.healed", label=item["label"], heal=heal, hp=p["hp"])
     else:
         p.setdefault("inventory", {})[item_key] = (

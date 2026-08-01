@@ -1,32 +1,32 @@
-import re
 from datetime import timedelta
 from typing import Any
 
 from .registry import registry
+from .services import market_service
 
 
 def system_reference_price(res: str) -> int:
-    base = registry.BASE_PRICE[res]
-    supply = max(0, int(registry.game.get("market_supply", {}).get(res, 0)))
-    price = int(base * 1.05 - min(base * 0.35, supply * 0.25))
-    price = max(int(base * 0.65), min(price, int(base * 1.8)))
-    price = int(price * registry.event_mod("all_prices", 1.0))
-    price = int(price * registry.event_mod(f"price_{res}", 1.0))
-    return max(1, price)
+    supply = registry.game.get("market_supply", {}).get(res, 0)
+    return market_service.system_reference_price(
+        registry.BASE_PRICE[res],
+        supply,
+        all_prices_mod=registry.event_mod("all_prices", 1.0),
+        resource_price_mod=registry.event_mod(f"price_{res}", 1.0),
+    )
 
 
 registry.system_reference_price = system_reference_price
 
 
 def system_buy_price(res: str) -> int:
-    return max(1, int(registry.system_reference_price(res) * 0.25))
+    return market_service.system_buy_price(registry.system_reference_price(res))
 
 
 registry.system_buy_price = system_buy_price
 
 
 def system_sell_price(res: str) -> int:
-    return max(1, int(registry.system_reference_price(res) * 2.5))
+    return market_service.system_sell_price(registry.system_reference_price(res))
 
 
 registry.system_sell_price = system_sell_price
@@ -46,17 +46,13 @@ def maybe_system_daily_restock() -> bool:
     supply = registry.game.setdefault(
         "market_supply", {r: 0 for r in registry.RESOURCES}
     )
-    added: dict[str, int] = {}
-    for r in registry.RESOURCES:
-        current = max(0, int(supply.get(r, 0)))
-        daily = max(0, int(registry.SYSTEM_DAILY_RESTOCK.get(r, 0)))
-        cap = max(daily, int(registry.SYSTEM_STOCK_CAP.get(r, daily)))
-        qty = max(0, min(daily, cap - current))
-        if qty > 0:
-            supply[r] = current + qty
-            added[r] = qty
-        else:
-            supply[r] = current
+    new_supply, added = market_service.compute_daily_restock(
+        supply,
+        registry.RESOURCES,
+        registry.SYSTEM_DAILY_RESTOCK,
+        registry.SYSTEM_STOCK_CAP,
+    )
+    supply.update(new_supply)
     registry.game["last_system_restock"] = today
     if added:
         log = registry.game.setdefault("system_stock_log", [])
@@ -124,37 +120,18 @@ registry.open_barter_orders = open_barter_orders
 
 
 def parse_resource_pairs(text: str) -> dict[str, int] | None:
-    if not text:
-        return None
-    tokens = re.findall("[\\wآ-یئ]+|\\d+", text.replace("×", " ").replace("،", " "))
-    result: dict[str, int] = {}
-    i = 0
-    while i < len(tokens):
-        r = registry.res_key(tokens[i])
-        if not r or r == "water" or r not in registry.RESOURCES:
-            return None
-        if i + 1 >= len(tokens):
-            return None
-        qty = registry.safe_int(tokens[i + 1], -1)
-        if qty <= 0:
-            return None
-        result[r] = result.get(r, 0) + qty
-        i += 2
-    return result or None
+    return market_service.parse_resource_pairs(
+        text, registry.res_key, set(registry.RESOURCES)
+    )
 
 
 registry.parse_resource_pairs = parse_resource_pairs
 
 
 def parse_barter_text(text: str) -> tuple[dict[str, int], dict[str, int]] | None:
-    if "=" not in text:
-        return None
-    left, right = text.split("=", 1)
-    give = registry.parse_resource_pairs(left)
-    want = registry.parse_resource_pairs(right)
-    if not give or not want:
-        return None
-    return (give, want)
+    return market_service.parse_barter_text(
+        text, registry.res_key, set(registry.RESOURCES)
+    )
 
 
 registry.parse_barter_text = parse_barter_text
@@ -463,32 +440,16 @@ registry.open_rental_contracts = open_rental_contracts
 
 
 def parse_rental_text(text: str) -> tuple[dict[str, int], dict[str, int], int] | None:
-    if "=" not in text:
-        return None
-    left, right = text.split("=", 1)
-    right_tokens = right.split()
-    hours = 6
-    if right_tokens and registry.safe_int(right_tokens[-1], -1) > 0:
-        hours = registry.safe_int(right_tokens[-1], 6)
-        right = " ".join(right_tokens[:-1])
-    give = registry.parse_resource_pairs(left)
-    repay = registry.parse_resource_pairs(right)
-    if not give or not repay:
-        return None
-    hours = max(1, min(48, int(hours)))
-    return (give, repay, hours * 3600)
+    return market_service.parse_rental_text(
+        text, registry.res_key, set(registry.RESOURCES)
+    )
 
 
 registry.parse_rental_text = parse_rental_text
 
 
 def rental_profit_ok(give: dict[str, int], repay: dict[str, int]) -> bool:
-    if len(give) == 1 and len(repay) == 1:
-        rg, qg = next(iter(give.items()))
-        rr, qr = next(iter(repay.items()))
-        if rg == rr and int(qr) > int(qg * 1.3 + 0.999):
-            return False
-    return True
+    return market_service.rental_profit_ok(give, repay)
 
 
 registry.rental_profit_ok = rental_profit_ok

@@ -3,15 +3,7 @@ from datetime import timedelta
 from typing import Any
 
 from .registry import registry
-
-LOOT_RATES = {
-    "water": 0.135,  # ۱۳.۵٪
-    "scrap": 0.09,  # ۹٪
-    "plastic": 0.08,  # ۸٪
-    "glass": 0.07,  # ۷٪
-    "battery": 0.06,  # ۶٪
-    "copper": 0.05,  # ۵٪
-}
+from .services import raid_service
 
 
 def raid_target_button(name: str) -> str:
@@ -33,11 +25,11 @@ registry.raid_bucket_from_text = raid_bucket_from_text
 
 def raid_target_score(p: dict[str, Any]) -> int:
     registry.recalc_power(p)
-    return (
-        int(p.get("water", 0))
-        + int(p.get("total_defense", 0)) * 2
-        + int(p.get("total_attack", 0)) * 2
-        + int(p.get("level", 1)) * 120
+    return raid_service.raid_target_score(
+        p.get("water", 0),
+        p.get("total_defense", 0),
+        p.get("total_attack", 0),
+        p.get("level", 1),
     )
 
 
@@ -66,16 +58,7 @@ def raid_bucket_targets(
     chat_id: str, bucket_key: str
 ) -> list[tuple[str, dict[str, Any]]]:
     candidates = registry.raid_candidates(chat_id)
-    if len(candidates) <= 2:
-        return candidates
-    third = max(1, (len(candidates) + 2) // 3)
-    if bucket_key == "weak":
-        return candidates[:third]
-    if bucket_key == "medium":
-        return candidates[third : third * 2] or candidates
-    if bucket_key == "strong":
-        return candidates[third * 2 :] or candidates[-third:]
-    return candidates
+    return raid_service.bucket_slice(candidates, bucket_key)
 
 
 registry.raid_bucket_targets = raid_bucket_targets
@@ -289,10 +272,10 @@ def handle_raid(
     p["stats"]["raids_done"] = p["stats"].get("raids_done", 0) + 1
     t["stats"]["raids_received"] = t["stats"].get("raids_received", 0) + 1
     registry.inc_mission(chat_id, "raid", 1)
-    atk = int(p.get("total_attack", 0) * random.uniform(0.92, 1.28) * cfg["atk_mod"])
-    atk = int(atk * (1 + p.get("level", 1) * 0.028))
-    defense = int(t.get("total_defense", 0) * random.uniform(0.82, 1.18))
-    defense = int(defense * (1 + max(0, t.get("level", 1) - 4) * 0.04))
+    atk = raid_service.roll_attack(
+        p.get("total_attack", 0), cfg["atk_mod"], p.get("level", 1)
+    )
+    defense = raid_service.roll_defense(t.get("total_defense", 0), t.get("level", 1))
     defense *= registry.event_mod("defense", 1.0)
     emp_mult = registry.consume_next_raid_emp(chat_id, p, raid_notes)
     if emp_mult < 1.0:
@@ -314,20 +297,17 @@ def handle_raid(
     if atk > defense:
         loot_pct_base = cfg["loot_mod"] * registry.event_mod("raid_loot", 1.0)
 
-        LOOT_RATES = {
-            "water": 0.135,
-            "scrap": 0.09,
-            "plastic": 0.08,
-            "glass": 0.07,
-            "battery": 0.06,
-            "copper": 0.05,
-        }
+        loot = raid_service.compute_raid_loot(
+            target_water=t.get("water", 0),
+            target_resources=t.get("resources", {}),
+            loot_pct_base=loot_pct_base,
+            resource_keys=list(registry.RESOURCES),
+        )
 
-        looted = {}
+        looted = dict(loot.resources_looted)
+        gross_water = loot.water_looted
 
         # —— غارت آب ——
-        water_rate = LOOT_RATES["water"] * loot_pct_base
-        gross_water = min(int(t.get("water", 0)), int(t.get("water", 0) * water_rate))
         if gross_water > 0:
             t["water"] = max(0, int(t.get("water", 0)) - gross_water)
             t["stats"]["water_lost"] = t["stats"].get("water_lost", 0) + gross_water
@@ -340,20 +320,14 @@ def handle_raid(
             )
 
         # —— غارت بقیه منابع ——
-        for (
-            res
-        ) in registry.RESOURCES:  # ["scrap", "plastic", "glass", "battery", "copper"]
-            rate = LOOT_RATES.get(res, 0.05) * loot_pct_base
-            current = int(t.get(res, 0))
-            if current <= 0:
-                continue
-            amount = min(current, int(current * rate))
-            if amount <= 0:
-                continue
-
-            t[res] = current - amount
-            p[res] = p.get(res, 0) + amount
-            looted[res] = amount
+        # NOTE: this used to read/write t[res] / p[res] directly, which
+        # are never-set top-level keys (resources live under
+        # p["resources"][res] — see amount_of/add_amount). That silently
+        # made resource looting a no-op for everything except water.
+        # Fixed to go through the correct resources dict.
+        for res, amount in loot.resources_looted.items():
+            registry.add_amount(t, res, -amount)
+            registry.add_amount(p, res, amount)
             t["stats"][f"{res}_lost"] = t["stats"].get(f"{res}_lost", 0) + amount
 
         # —— ساخت متن غنیمت ——

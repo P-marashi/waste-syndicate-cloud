@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Any
 
 from .registry import registry
+from .services import misc_service
 
 
 def inventory_resources_text(p: dict[str, Any]) -> str:
@@ -135,20 +136,23 @@ def handle_daily(chat_id: str) -> None:
         )
         return
     yesterday = (registry.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    p["daily_streak"] = (
-        int(p.get("daily_streak", 0)) + 1 if p.get("daily_last") == yesterday else 1
+    p["daily_streak"] = misc_service.next_daily_streak(
+        p.get("daily_streak", 0), p.get("daily_last"), yesterday
     )
     p["daily_last"] = registry.today_key()
     streak = p["daily_streak"]
-    water = 60 + min(200, streak * 10)
-    scrap = 10 + min(50, streak * 2)
-    plastic = 8 + min(40, streak * 2)
-    battery = 1 if streak % 3 == 0 else 0
+    reward = misc_service.compute_daily_reward(streak)
+    water, scrap, plastic, battery = (
+        reward["water"],
+        reward["scrap"],
+        reward["plastic"],
+        reward["battery"],
+    )
     p["water"] += water
     p["resources"]["scrap"] += scrap
     p["resources"]["plastic"] += plastic
     p["resources"]["battery"] += battery
-    reward = registry.fmt_res_dict(
+    reward_text = registry.fmt_res_dict(
         {
             "water": water,
             "scrap": scrap,
@@ -156,11 +160,11 @@ def handle_daily(chat_id: str) -> None:
             **({"battery": battery} if battery else {}),
         }
     )
-    registry.log_action(chat_id, "daily", {"reward": reward, "streak": streak})
+    registry.log_action(chat_id, "daily", {"reward": reward_text, "streak": streak})
     registry.save_game()
     registry.send(
         chat_id,
-        registry.T("daily.claimed", reward=reward, streak=streak),
+        registry.T("daily.claimed", reward=reward_text, streak=streak),
         keypad=registry.main_keypad(chat_id),
     )
 
@@ -249,15 +253,10 @@ registry.handle_season = handle_season
 
 def leaderboard_personal_note(chat_id: str, rows: list[tuple[str, int]]) -> str:
     total_players = len(rows)
-    my_rank = None
-    my_score = None
-    for i, (cid, score) in enumerate(rows, start=1):
-        if cid == chat_id:
-            my_rank = i
-            my_score = score
-            break
-    if not my_rank:
+    found = misc_service.find_leaderboard_rank(chat_id, rows)
+    if not found:
         return registry.T("leaderboard.no_rank", total=total_players)
+    my_rank, my_score = found
     if my_rank <= 10:
         return registry.T(
             "leaderboard.in_top", rank=my_rank, total=total_players, score=my_score

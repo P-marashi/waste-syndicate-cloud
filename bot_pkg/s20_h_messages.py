@@ -1,8 +1,8 @@
 import random
-import re
 from typing import Any
 
 from .registry import registry
+from .services import messages_service
 
 
 def private_message_keypad() -> dict[str, Any]:
@@ -27,8 +27,7 @@ registry.private_message_story = private_message_story
 
 
 def message_preview(text: str, limit: int = 90) -> str:
-    text = re.sub("\\s+", " ", (text or "").strip())
-    return text if len(text) <= limit else text[: limit - 1] + "…"
+    return messages_service.message_preview(text, limit)
 
 
 registry.message_preview = message_preview
@@ -119,15 +118,15 @@ def handle_private_message_body(chat_id: str, text: str) -> None:
             keypad=registry.private_message_keypad(),
         )
         return
-    body = (text or "").strip()
-    if len(body) < 2:
+    body = text or ""
+    if messages_service.is_body_too_short(body):
         registry.send(
             chat_id,
             registry.T("messages.body_too_short"),
             keypad=registry.make_keypad([[registry.B("main_menu")]]),
         )
         return
-    body = body[:700]
+    body = messages_service.normalize_message_body(body)
     mid = int(registry.game.get("next_private_message_id", 1))
     registry.game["next_private_message_id"] = mid + 1
     story = registry.private_message_story()
@@ -140,9 +139,9 @@ def handle_private_message_body(chat_id: str, text: str) -> None:
         "at": registry.iso(registry.now()),
     }
     registry.game.setdefault("private_messages", []).append(record)
-    registry.game["private_messages"] = registry.game["private_messages"][
-        -registry.MAX_PRIVATE_MESSAGES :
-    ]
+    registry.game["private_messages"] = messages_service.trim_message_log(
+        registry.game["private_messages"], registry.MAX_PRIVATE_MESSAGES
+    )
     registry.game.get("chat_states", {}).pop(chat_id, None)
     registry.log_action(
         chat_id, "private_message_sent", {"to": target, "message_id": mid}

@@ -4,15 +4,13 @@ from datetime import timedelta
 from typing import Any
 
 from ..registry import registry
+from ..services import world_boss_service
 
 
 def boss_power_estimate(p: dict[str, Any]) -> int:
     registry.recalc_power(p)
-    return max(
-        35,
-        int(p.get("total_attack", 0))
-        + int(int(p.get("total_defense", 0)) * 0.25)
-        + int(p.get("level", 1)) * 35,
+    return world_boss_service.boss_power_estimate(
+        p.get("total_attack", 0), p.get("total_defense", 0), p.get("level", 1)
     )
 
 
@@ -28,23 +26,17 @@ def boss_scaled_stats(template: dict[str, Any]) -> dict[str, int]:
     - با ۲۷ بازیکن، باس نیاز به مشارکت جدی داشته باشد، نه چند ضربه ساده.
     """
     ids = registry.registered_player_ids()
-    player_count = max(1, len(ids))
     powers = [
         registry.boss_power_estimate(registry.game["players"][cid]) for cid in ids
     ]
-    avg_power = int(sum(powers) / max(1, len(powers))) if powers else 90
-    expected_hits_per_player = 3.8 + min(2.2, player_count / 18)
-    difficulty = float(template.get("reward_mod", 1.0)) * random.uniform(1.12, 1.38)
-    scaled_hp = int(avg_power * player_count * expected_hits_per_player * difficulty)
-    floor_hp = int(16000 + player_count * 2600)
-    ceiling_hp = int(max(floor_hp, avg_power * player_count * 8.5))
-    hp = max(floor_hp, min(scaled_hp, ceiling_hp))
-    atk = int(template.get("atk", 14) + min(28, player_count * 0.55) + avg_power / 180)
+    scaled = world_boss_service.scale_boss_stats(
+        powers, template.get("atk", 14), float(template.get("reward_mod", 1.0))
+    )
     return {
-        "hp": hp,
-        "atk": max(10, atk),
-        "players": player_count,
-        "avg_power": avg_power,
+        "hp": scaled.hp,
+        "atk": scaled.atk,
+        "players": scaled.players,
+        "avg_power": scaled.avg_power,
     }
 
 
@@ -213,38 +205,29 @@ def finish_boss_if_dead(killer_id: str) -> bool:
         participants.items(), key=lambda x: int(x[1].get("damage", 0)), reverse=True
     )
     reward_lines = []
-    big_hitters = 0
     for rank, (cid, info) in enumerate(sorted_parts, 1):
         if cid not in registry.game["players"]:
             continue
         p = registry.game["players"][cid]
         dmg = int(info.get("damage", 0))
-        water = int((160 + dmg / 35) * float(boss.get("reward_mod", 1.0)))
-        if dmg >= 2000:
-            water += 450
+        reward = world_boss_service.compute_boss_reward(
+            rank, dmg, total_damage, boss.get("reward_mod", 1.0)
+        )
+        water = reward.water
+        if reward.big_hitter:
             p["loot_caches"] = int(p.get("loot_caches", 0)) + 2
-            big_hitters += 1
             registry.send(
                 cid,
                 "🏆 ضربه سنگین! (+۴۵۰ آب + ۲ صندوق)",
                 keypad=registry.main_keypad(cid),
             )
         if rank == 1:
-            water += 320
             p["loot_caches"] = int(p.get("loot_caches", 0)) + 3
         elif rank <= 3:
-            water += 180
             p["loot_caches"] = int(p.get("loot_caches", 0)) + 2
-        damage_share = dmg / total_damage
-        extra = int(800 * damage_share)
-        water += extra
         p["water"] = int(p.get("water", 0)) + water
-        p["resources"]["battery"] = p["resources"].get("battery", 0) + (
-            3 if rank <= 3 else 1
-        )
-        p["resources"]["copper"] = p["resources"].get("copper", 0) + (
-            6 if rank <= 3 else 2
-        )
+        p["resources"]["battery"] = p["resources"].get("battery", 0) + reward.battery
+        p["resources"]["copper"] = p["resources"].get("copper", 0) + reward.copper
         registry.maybe_award_legendary(
             cid, "باس جهانی", chance=0.03 if rank <= 3 else 0.008
         )
@@ -300,12 +283,10 @@ def handle_boss_attack(chat_id: str) -> None:
             keypad=registry.boss_keypad(),
         )
         return
-    power = (
-        int(p.get("total_attack", 0))
-        + int(p.get("total_defense", 0)) * 0.25
-        + int(p.get("level", 1)) * 35
+    power = world_boss_service.boss_power_estimate(
+        p.get("total_attack", 0), p.get("total_defense", 0), p.get("level", 1)
     )
-    damage = max(25, int(power * random.uniform(0.8, 1.25)))
+    damage = world_boss_service.roll_boss_attack_damage(power)
     boss["hp"] = max(0, int(boss.get("hp", 0)) - damage)
     part = boss.setdefault("participants", {}).setdefault(
         chat_id, {"damage": 0, "hits": 0}
@@ -317,7 +298,7 @@ def handle_boss_attack(chat_id: str) -> None:
     )
     p.setdefault("stats", {})["boss_hits"] = p.get("stats", {}).get("boss_hits", 0) + 1
     registry.inc_mission(chat_id, "boss_attack", 1)
-    boss_hit = random.randint(0, int(boss.get("atk", 10)))
+    boss_hit = world_boss_service.roll_boss_counter_hit(boss.get("atk", 10))
     p["hp"] = max(1, int(p.get("hp", 100)) - boss_hit)
     registry.set_cd(p, "boss", registry.BOSS_ATTACK_CD)
     defeated = registry.finish_boss_if_dead(chat_id)

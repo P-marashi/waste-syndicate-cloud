@@ -1,52 +1,37 @@
 from typing import Any
 
 from ..registry import registry
+from ..services import season_service
 
 
 def season_score_breakdown(chat_id: str) -> dict[str, int]:
     p = registry.game["players"][chat_id]
     registry.recalc_power(p)
-    atk = int(p.get("total_attack", 0))
-    dfc = int(p.get("total_defense", 0))
-    balanced_power_bonus = min(atk, dfc) * 0.45
-    combat = int(
-        atk * 1.45
-        + dfc * 1.25
-        + balanced_power_bonus
-        + int(p.get("stats", {}).get("raids_done", 0)) * 180
-        + int(p.get("stats", {}).get("boss_damage", 0)) * 0.08
-    )
     res_value = sum(
         int(p.get("resources", {}).get(r, 0)) * registry.system_reference_price(r)
         for r in registry.RESOURCES
     )
-    economy = int(
-        int(p.get("water", 0)) * 1.1
-        + res_value * 0.28
-        + int(p.get("stats", {}).get("market_sales", 0)) * 90
-        + int(p.get("stats", {}).get("alliance_shared", 0)) * 70
-    )
     building_levels = sum(int(v) for v in p.get("buildings", {}).values())
     stats = p.get("stats", {})
-    progress = int(
-        registry.cartel_score_bonus(chat_id) * 1.2
-        + int(p.get("level", 1)) * 950
-        + int(p.get("xp", 0)) * 18
-        + building_levels * 420
-        + int(stats.get("scavenge_success", 0)) * 65
-        + int(stats.get("raids_done", 0)) * 95
-        + int(stats.get("missions_completed", 0)) * 180
-        + int(p.get("season_points_bonus", 0)) * 1.4
+    inputs = season_service.SeasonScoreInputs(
+        total_attack=p.get("total_attack", 0),
+        total_defense=p.get("total_defense", 0),
+        raids_done=stats.get("raids_done", 0),
+        boss_damage=stats.get("boss_damage", 0),
+        water=p.get("water", 0),
+        resource_value=res_value,
+        market_sales=stats.get("market_sales", 0),
+        alliance_shared=stats.get("alliance_shared", 0),
+        cartel_score_bonus=registry.cartel_score_bonus(chat_id),
+        level=p.get("level", 1),
+        xp=p.get("xp", 0),
+        building_levels=building_levels,
+        scavenge_success=stats.get("scavenge_success", 0),
+        missions_completed=stats.get("missions_completed", 0),
+        season_points_bonus=p.get("season_points_bonus", 0),
+        honor=p.get("honor", 0),
     )
-    honor = int(p.get("honor", 0)) * 6.5
-    total = max(0, combat + economy + progress + honor)
-    return {
-        "combat": combat,
-        "economy": economy,
-        "progress": progress,
-        "honor": honor,
-        "total": total,
-    }
+    return season_service.season_score_breakdown(inputs)
 
 
 registry.season_score_breakdown = season_score_breakdown
@@ -74,10 +59,8 @@ registry.ranked_players = ranked_players
 
 def season_left_text() -> str:
     end = registry.fromiso(registry.game.get("season", {}).get("end"), registry.now())
-    sec = max(0, int((end - registry.now()).total_seconds()))
-    d, rem = divmod(sec, 86400)
-    h, rem = divmod(rem, 3600)
-    m, _ = divmod(rem, 60)
+    sec = (end - registry.now()).total_seconds()
+    d, h, m = season_service.split_time_left(sec)
     if d:
         return registry.T("season.left_days", days=d, hours=h)
     if h:

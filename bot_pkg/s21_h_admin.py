@@ -1,7 +1,7 @@
-import re
 from typing import Any
 
 from .registry import registry
+from .services import admin_service
 
 
 def admin_keypad() -> dict[str, Any]:
@@ -156,13 +156,7 @@ registry.admin_players_keypad = admin_players_keypad
 
 
 def parse_admin_players_page(text: str) -> int | None:
-    m = re.match("^👥 بازیکن\u200cها صفحه (\\d+)$", text.strip())
-    if not m:
-        return None
-    try:
-        return max(1, int(m.group(1)))
-    except Exception:
-        return None
+    return admin_service.parse_page_number(text, r"^👥 بازیکن‌ها صفحه (\d+)$")
 
 
 registry.parse_admin_players_page = parse_admin_players_page
@@ -178,17 +172,11 @@ def handle_admin_players(chat_id: str, page: int = 1, sender_id: str = "") -> No
         return
     ranked = registry.ranked_players(include_banned=True)
     total = len(ranked)
-    pages = max(
-        1,
-        (total + registry.ADMIN_PLAYERS_PAGE_SIZE - 1)
-        // registry.ADMIN_PLAYERS_PAGE_SIZE,
+    page, pages, start, end = admin_service.paginate(
+        total, page, registry.ADMIN_PLAYERS_PAGE_SIZE
     )
-    page = min(max(1, page), pages)
-    start = (page - 1) * registry.ADMIN_PLAYERS_PAGE_SIZE
     rows = []
-    for idx, (cid, score) in enumerate(
-        ranked[start : start + registry.ADMIN_PLAYERS_PAGE_SIZE], start=start + 1
-    ):
+    for idx, (cid, score) in enumerate(ranked[start:end], start=start + 1):
         p = registry.game.get("players", {}).get(cid, {})
         rows.append(
             registry.T(
@@ -212,9 +200,7 @@ def handle_admin_players(chat_id: str, page: int = 1, sender_id: str = "") -> No
             pages=pages,
             total=registry.fmt_num(total),
             from_rank=registry.fmt_num(start + 1 if total else 0),
-            to_rank=registry.fmt_num(
-                min(start + registry.ADMIN_PLAYERS_PAGE_SIZE, total)
-            ),
+            to_rank=registry.fmt_num(end),
             lines="\n\n".join(rows) or "—",
         ),
         keypad=registry.admin_players_keypad(page, pages),
@@ -767,24 +753,10 @@ registry.PENALTY_ALIASES = {
 
 
 def parse_admin_penalty(text: str) -> tuple[dict[str, int], str]:
-    raw = (text or "").strip()
-    reason = "بدون دلیل ثبت\u200cشده"
-    m = re.search("(?:^|\\s)(?:دلیل|reason)\\s*[=:]\\s*(.+)$", raw, re.IGNORECASE)
-    if m:
-        reason = registry.message_preview(m.group(1), 180)
-        raw = raw[: m.start()].strip()
-    items: dict[str, int] = {}
-    for key, amount in re.findall("([A-Za-z_آ-یي]+)\\s*[=:]\\s*(-?\\d+)", raw):
-        mapped = registry.PENALTY_ALIASES.get(
-            key.strip()
-        ) or registry.PENALTY_ALIASES.get(key.strip().lower())
-        if not mapped:
-            continue
-        value = abs(int(amount))
-        if value <= 0:
-            continue
-        items[mapped] = items.get(mapped, 0) + value
-    return (items, reason)
+    def resolve(key: str) -> str | None:
+        return registry.PENALTY_ALIASES.get(key)
+
+    return admin_service.parse_penalty_text(text, resolve)
 
 
 registry.parse_admin_penalty = parse_admin_penalty
@@ -795,9 +767,8 @@ def apply_admin_penalty(target: str, penalties: dict[str, int]) -> list[str]:
     lines: list[str] = []
     for key, amount in penalties.items():
         if key == "water":
-            before = int(p.get("water", 0))
-            taken = min(before, amount)
-            p["water"] = before - taken
+            taken, after = admin_service.apply_clamped_penalty(p.get("water", 0), amount)
+            p["water"] = after
             lines.append(
                 registry.T(
                     "admin.penalty_change_line",
@@ -807,9 +778,10 @@ def apply_admin_penalty(target: str, penalties: dict[str, int]) -> list[str]:
                 )
             )
         elif key in registry.RESOURCES:
-            before = int(p.get("resources", {}).get(key, 0))
-            taken = min(before, amount)
-            p.setdefault("resources", {})[key] = before - taken
+            taken, after = admin_service.apply_clamped_penalty(
+                p.get("resources", {}).get(key, 0), amount
+            )
+            p.setdefault("resources", {})[key] = after
             lines.append(
                 registry.T(
                     "admin.penalty_change_line",
@@ -819,9 +791,8 @@ def apply_admin_penalty(target: str, penalties: dict[str, int]) -> list[str]:
                 )
             )
         elif key == "xp":
-            before = int(p.get("xp", 0))
-            taken = min(before, amount)
-            p["xp"] = before - taken
+            taken, after = admin_service.apply_clamped_penalty(p.get("xp", 0), amount)
+            p["xp"] = after
             lines.append(
                 registry.T(
                     "admin.penalty_change_line",
@@ -831,7 +802,9 @@ def apply_admin_penalty(target: str, penalties: dict[str, int]) -> list[str]:
                 )
             )
         elif key == "score":
-            p["season_points_bonus"] = int(p.get("season_points_bonus", 0)) - amount
+            p["season_points_bonus"] = admin_service.apply_unclamped_penalty(
+                p.get("season_points_bonus", 0), amount
+            )
             lines.append(
                 registry.T(
                     "admin.penalty_score_line",
@@ -840,7 +813,7 @@ def apply_admin_penalty(target: str, penalties: dict[str, int]) -> list[str]:
                 )
             )
         elif key == "honor":
-            p["honor"] = int(p.get("honor", 0)) - amount
+            p["honor"] = admin_service.apply_unclamped_penalty(p.get("honor", 0), amount)
             lines.append(
                 registry.T(
                     "admin.penalty_change_line",
@@ -850,9 +823,8 @@ def apply_admin_penalty(target: str, penalties: dict[str, int]) -> list[str]:
                 )
             )
         elif key == "hp":
-            before = int(p.get("hp", 100))
-            taken = min(before, amount)
-            p["hp"] = max(0, before - taken)
+            taken, after = admin_service.apply_clamped_penalty(p.get("hp", 100), amount)
+            p["hp"] = after
             lines.append(
                 registry.T(
                     "admin.penalty_change_line",

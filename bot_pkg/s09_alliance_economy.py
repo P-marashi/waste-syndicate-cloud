@@ -1,6 +1,7 @@
 from typing import Any
 
 from .registry import registry
+from .services import alliance_service
 
 
 def get_alliance(name: str | None) -> dict[str, Any] | None:
@@ -32,15 +33,15 @@ registry.alliance_mode_text = alliance_mode_text
 def cartel_level(al: dict[str, Any] | None) -> int:
     if not al:
         return 1
-    return max(1, min(registry.MAX_CARTEL_LEVEL, int(al.get("level", 1))))
+    return alliance_service.cartel_level(al.get("level", 1), registry.MAX_CARTEL_LEVEL)
 
 
 registry.cartel_level = cartel_level
 
 
 def cartel_level_data(al: dict[str, Any] | None) -> dict[str, Any]:
-    return registry.CARTEL_LEVELS.get(
-        registry.cartel_level(al), registry.CARTEL_LEVELS[1]
+    return alliance_service.cartel_level_data(
+        registry.cartel_level(al), registry.CARTEL_LEVELS
     )
 
 
@@ -49,9 +50,9 @@ registry.cartel_level_data = cartel_level_data
 
 def cartel_next_upgrade_cost(al: dict[str, Any]) -> int:
     lv = registry.cartel_level(al)
-    if lv >= registry.MAX_CARTEL_LEVEL:
-        return 0
-    return int(registry.CARTEL_LEVELS[lv + 1]["upgrade_cost"])
+    return alliance_service.cartel_next_upgrade_cost(
+        lv, registry.MAX_CARTEL_LEVEL, registry.CARTEL_LEVELS
+    )
 
 
 registry.cartel_next_upgrade_cost = cartel_next_upgrade_cost
@@ -111,14 +112,13 @@ def distribute_alliance_income(
         for cid in al.get("members", [])
         if cid in registry.game["players"] and cid != source_id
     ]
+    each, actual_dist, vault_add = alliance_service.distribute_pool(
+        pool, len(members), registry.ALLIANCE_DISTRIBUTE_RATE
+    )
     if not members:
-        al["vault"] = int(al.get("vault", 0)) + pool
+        al["vault"] = int(al.get("vault", 0)) + vault_add
         al["total_shared"] = int(al.get("total_shared", 0)) + pool
-        return (0, pool, registry.T("alliance.no_share"))
-    distributed = int(pool * registry.ALLIANCE_DISTRIBUTE_RATE)
-    vault_add = max(0, pool - distributed)
-    each = max(1, distributed // len(members)) if distributed > 0 else 0
-    actual_dist = each * len(members)
+        return (0, vault_add, registry.T("alliance.no_share"))
     for cid in members:
         mp = registry.game["players"][cid]
         mp["water"] = int(mp.get("water", 0)) + each
@@ -130,7 +130,7 @@ def distribute_alliance_income(
             "alliance_dividend",
             {"from": source_id, "amount": each, "reason": reason},
         )
-    al["vault"] = int(al.get("vault", 0)) + vault_add + (distributed - actual_dist)
+    al["vault"] = int(al.get("vault", 0)) + vault_add
     al["total_shared"] = int(al.get("total_shared", 0)) + pool
     source = registry.game["players"][source_id]
     source.setdefault("stats", {})["alliance_shared"] = (
@@ -138,7 +138,7 @@ def distribute_alliance_income(
     )
     return (
         actual_dist,
-        vault_add + (distributed - actual_dist),
+        vault_add,
         registry.T(
             "alliance.share_note",
             pool=pool,
@@ -161,9 +161,9 @@ def award_water(
     net = gross
     note = ""
     if alliance_share and p.get("alliance"):
-        tax = int(gross * registry.ALLIANCE_TAX_RATE)
-        bonus = int(gross * registry.ALLIANCE_BONUS_RATE)
-        net = max(0, gross - tax)
+        net, tax, bonus = alliance_service.split_water_tax(
+            gross, registry.ALLIANCE_TAX_RATE, registry.ALLIANCE_BONUS_RATE
+        )
         pool = tax + bonus
         _, _, note = registry.distribute_alliance_income(chat_id, pool, reason)
     p["water"] = int(p.get("water", 0)) + net

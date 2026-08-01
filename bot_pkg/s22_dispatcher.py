@@ -153,6 +153,12 @@ def dispatch(
         return registry.handle_market_menu(chat_id)
     if text == registry.B("market_people"):
         return registry.handle_market_people(chat_id)
+    if text == registry.B("buy"):
+        return registry.handle_market_people(chat_id)
+    if text == registry.B("sell"):
+        return registry.handle_create_order_prompt(chat_id)
+    if text == registry.B("barter"):
+        return registry.handle_barter_menu(chat_id)
     if text == registry.B("market_create_order"):
         return registry.handle_create_order_prompt(chat_id)
     if text == registry.B("market_my_orders"):

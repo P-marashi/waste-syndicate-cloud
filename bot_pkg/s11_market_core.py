@@ -236,11 +236,15 @@ def handle_create_barter(chat_id: str, text: str) -> None:
     give, want = parsed
     active = [o for o in registry.open_barter_orders() if o.get("seller_id") == chat_id]
     if len(active) >= 3:
+        registry.game["chat_states"].pop(chat_id, None)
+        registry.save_game()
         registry.send(
             chat_id, registry.T("barter.too_many"), keypad=registry.market_keypad()
         )
         return
     if not registry.has_resources(p, give):
+        registry.game["chat_states"].pop(chat_id, None)
+        registry.save_game()
         registry.send(
             chat_id,
             registry.T(
@@ -582,11 +586,15 @@ def handle_create_rental(chat_id: str, text: str) -> None:
         return
     give, repay, duration = parsed
     if not registry.rental_profit_ok(give, repay):
+        registry.game["chat_states"].pop(chat_id, None)
+        registry.save_game()
         registry.send(
             chat_id, registry.T("rental.profit_limit"), keypad=registry.market_keypad()
         )
         return
     if not registry.has_resources(p, give):
+        registry.game["chat_states"].pop(chat_id, None)
+        registry.save_game()
         registry.send(
             chat_id,
             registry.T(
@@ -730,9 +738,11 @@ def handle_my_rentals(chat_id: str) -> None:
                 status=c.get("status"),
                 give=registry.fmt_res_dict(c.get("give", {})),
                 repay=registry.fmt_res_dict(c.get("remaining") or c.get("repay", {})),
-                due=registry.fmt_dt(c.get("due_at"))
-                if c.get("due_at")
-                else "هنوز قبول نشده",
+                due=(
+                    registry.fmt_dt(c.get("due_at"))
+                    if c.get("due_at")
+                    else "هنوز قبول نشده"
+                ),
             )
         )
         if c.get("status") == "open" and c.get("lender") == chat_id:

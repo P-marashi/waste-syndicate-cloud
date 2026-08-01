@@ -1,0 +1,79 @@
+# Development stack: live code reload + a one-off test runner.
+#
+# Start Mongo first (once — leave it running across dev sessions):
+#   docker compose -f docker-compose.mongo.yml up -d
+#
+# Then run the bot in dev mode (source is bind-mounted, so edits on the
+# host are picked up without rebuilding — restart the container to pick
+# up a change: `docker compose -f docker-compose.dev.yml restart game`):
+#   docker compose -f docker-compose.dev.yml up
+#
+# Run the test suite (uses mongomock by default, no real Mongo needed;
+# this does NOT touch the mongodb container or your dev save data):
+#   docker compose -f docker-compose.dev.yml run --rm test
+#
+# Get a shell in the dev container:
+#   docker compose -f docker-compose.dev.yml run --rm game bash
+
+services:
+  game:
+    build:
+      context: .
+      target: development
+
+    container_name: waste_syndicate_game_dev
+
+    env_file:
+      - .env
+
+    environment:
+      SYNDICATE_DEBUG: "1"
+      MONGO_URI: ${MONGO_URI:-mongodb://waste_syndicate_mongodb:27017/}
+
+    volumes:
+      - .:/app
+      # anonymous volume over the venv dir: keeps the image's own
+      # (Linux) venv instead of letting the bind mount above shadow it
+      # with a host venv that may be for a different OS/arch.
+      - /app/.venv
+
+    working_dir: /app
+
+    command: ["uv", "run", "python", "run_bot.py"]
+
+    stdin_open: true
+    tty: true
+
+    networks:
+      - waste_syndicate_net
+
+  # One-off test runner — not started by `up` (profile-gated). Doesn't
+  # need Mongo running: tests use mongomock unless you override USE_MONGO.
+  test:
+    build:
+      context: .
+      target: development
+
+    container_name: waste_syndicate_tests
+
+    environment:
+      BOT_TOKEN: test-token
+      USE_MONGO: "0"
+
+    volumes:
+      - .:/app
+      - /app/.venv
+
+    working_dir: /app
+
+    command: ["uv", "run", "pytest", "-q"]
+
+    profiles: ["test"]
+
+    networks:
+      - waste_syndicate_net
+
+networks:
+  waste_syndicate_net:
+    external: true
+    name: waste_syndicate_net

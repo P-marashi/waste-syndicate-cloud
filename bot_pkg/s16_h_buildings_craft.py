@@ -87,21 +87,21 @@ def handle_building_detail(chat_id: str, bk: str) -> None:
     bd = registry.BUILDINGS[bk]
     lv = int(p.get("buildings", {}).get(bk, 0))
     max_lv = max(bd["levels"].keys())
-    
+
     # Store last building in chat state for upgrade
     registry.game.setdefault("chat_states", {})[chat_id] = {
         "state": "building_detail",
-        "last_building": bk
+        "last_building": bk,
     }
-    
+
     # Get current level's production/effect
     current_effect = ""
     if lv > 0 and lv in bd["levels"]:
         nd = bd["levels"][lv]
         current_effect = registry.building_effect_text(nd)
-    
+
     inprog = registry.upgrade_in_progress(p, bk)
-    
+
     if lv <= 0:
         status_line = f"❌ ساخته نشده"
     elif inprog is not None:
@@ -110,16 +110,16 @@ def handle_building_detail(chat_id: str, bk: str) -> None:
         status_line = f"✅ حداکثر سطح ({lv})"
     else:
         status_line = f"📊 سطح فعلی: {lv}"
-    
+
     text = f"""{registry.B(bk)}
 ━━━━━━━━━━━━
 {bd['desc']}
 {status_line}
 اثر فعلی: {current_effect}
 ━━━━━━━━━━━━"""
-    
+
     keypad_rows = []
-    
+
     if lv < max_lv and inprog is None:
         nd = bd["levels"][lv + 1]
         cost = dict(nd["cost"])
@@ -128,14 +128,14 @@ def handle_building_detail(chat_id: str, bk: str) -> None:
         )
         if discount:
             cost = building_service.apply_discount(cost, discount)
-            
+
         can_upgrade = registry.has_resources(p, cost)
         upgrade_btn = f"⬆️ ارتقا به سطح {lv + 1}"
         if can_upgrade:
             keypad_rows.append([upgrade_btn])
         else:
             keypad_rows.append([f"{upgrade_btn} ❌ کمبود منابع"])
-        
+
         text += f"""
 📈 ارتقا به سطح {lv + 1}:
 {registry.fmt_res_lines(cost)}
@@ -143,7 +143,7 @@ def handle_building_detail(chat_id: str, bk: str) -> None:
 اثر جدید: {registry.building_effect_text(nd)}"""
     elif inprog is not None:
         text += f"\n⏳ زمان باقی‌مانده: {registry.fmt_cd(inprog)}"
-    
+
     keypad_rows.append([registry.B("buildings"), registry.B("main_menu")])
     registry.save_game()
     registry.send(chat_id, text, keypad=registry.make_keypad(keypad_rows))
@@ -243,6 +243,7 @@ def craft_keypad() -> dict[str, Any]:
 
 
 registry.craft_keypad = craft_keypad
+
 
 def buildings_keypad() -> dict[str, Any]:
     rows = [

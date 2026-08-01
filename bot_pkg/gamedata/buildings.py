@@ -1,6 +1,7 @@
 BUILDINGS = {
     "purifier": {
         "label": "💧 دستگاه تصفیه آب",
+        "desc": "آب تمیز تولید می‌کند که برای بقا و ساخت‌وساز لازم است.",
         "levels": {
             1: {
                 "cost": {"scrap": 8, "plastic": 4},
@@ -41,6 +42,7 @@ BUILDINGS = {
     },
     "wall": {
         "label": "🧱 دیوار دفاعی",
+        "desc": "در برابر حملات دشمن از پایگاه شما دفاع می‌کند.",
         "levels": {
             1: {"cost": {"scrap": 5, "plastic": 3}, "time": 60, "def": 120, "atk": 0},
             2: {"cost": {"scrap": 15, "plastic": 8}, "time": 180, "def": 280, "atk": 0},
@@ -56,6 +58,7 @@ BUILDINGS = {
     },
     "armory": {
         "label": "⚔️ زرادخانه",
+        "desc": "قدرت حمله شما را در نبردها افزایش می‌دهد.",
         "levels": {
             1: {"cost": {"scrap": 6, "plastic": 4}, "time": 60, "atk": 90},
             2: {"cost": {"scrap": 18, "plastic": 10}, "time": 180, "atk": 210},
@@ -70,6 +73,7 @@ BUILDINGS = {
     },
     "lab": {
         "label": "🔬 آزمایشگاه",
+        "desc": "هزینه ساخت‌وساز و کرافت را کاهش می‌دهد.",
         "levels": {
             1: {
                 "cost": {"scrap": 10, "glass": 5, "battery": 2},
@@ -99,6 +103,7 @@ BUILDINGS = {
     },
     "market_stall": {
         "label": "🏪 غرفه بازار",
+        "desc": "کارمزد معاملات بازار را کاهش می‌دهد.",
         "levels": {
             1: {
                 "cost": {"scrap": 8, "plastic": 6},
@@ -128,6 +133,7 @@ BUILDINGS = {
     },
     "hospital": {
         "label": "🏥 درمانگاه",
+        "desc": "سرعت و مقدار درمان را افزایش می‌دهد.",
         "levels": {
             1: {
                 "cost": {"plastic": 8, "glass": 4},

@@ -1,0 +1,31 @@
+# Standalone MongoDB stack.
+#
+# Shared by docker-compose.dev.yml and docker-compose.prod.yml via the
+# external `waste_syndicate_net` network (created here). Also handy on
+# its own if you want a real Mongo to test against instead of mongomock:
+#
+#   docker compose -f docker-compose.mongo.yml up -d
+#   MONGO_URI=mongodb://localhost:27017/ USE_MONGO=1 uv run pytest
+#
+# Must be started before docker-compose.dev.yml / docker-compose.prod.yml
+# (compose doesn't support depends_on across separate files/projects).
+
+services:
+  mongodb:
+    image: mongo:8
+    container_name: waste_syndicate_mongodb
+
+    restart: unless-stopped
+
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+
+    volumes:
+      - ./data/mongodb:/data/db
+
+    networks:
+      - waste_syndicate_net
+
+networks:
+  waste_syndicate_net:
+    name: waste_syndicate_net

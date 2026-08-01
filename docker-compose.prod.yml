@@ -1,0 +1,35 @@
+# Production stack.
+#
+# Start Mongo first:
+#   docker compose -f docker-compose.mongo.yml up -d
+#
+# Then:
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  game:
+    build:
+      context: .
+      target: production
+
+    container_name: waste_syndicate_game
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://waste_syndicate_mongodb:27017/}
+
+    volumes:
+      - ./texts:/app/texts:ro
+      - ./offset.json:/app/offset.json
+
+    networks:
+      - waste_syndicate_net
+
+networks:
+  waste_syndicate_net:
+    external: true
+    name: waste_syndicate_net

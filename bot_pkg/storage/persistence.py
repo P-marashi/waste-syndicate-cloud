@@ -1,82 +1,61 @@
 import json
 from typing import Any
 
-from pymongo import UpdateOne
-
 from ..registry import registry
-from .database import META_LIST_KEYS, META_SCALAR_KEYS, get_db
+from .collections import ID_LIST_KEYS, LOG_KEYS, build_repositories
+from .database import get_db
 from .factories import default_game
 from .migration import migrate_game
 
 
 def _save_game_mongo() -> None:
+    """Persist `registry.game` via the repository layer.
+
+    NOTE: this is a *transitional bridge*. It still reads the whole
+    in-memory `game` dict and re-syncs each collection, same as the old
+    code — but now each piece of data lands in its own collection with
+    real indexes instead of one giant `meta` document. Once handlers call
+    repository methods directly (Phase 2), this full-resync step goes
+    away for that data and each action writes only what it touched.
+    """
     db = get_db()
     game = registry.game
+    repos = build_repositories(db)
 
-    ops = [
-        UpdateOne(
-            {"_id": str(cid)},
-            {"$set": {**p, "_id": str(cid)}},
-            upsert=True,
-        )
-        for cid, p in game.get("players", {}).items()
-    ]
+    for cid, p in game.get("players", {}).items():
+        repos["players"].save(cid, p)
 
-    if ops:
-        db.players.bulk_write(
-            ops,
-            ordered=False,
-        )
+    for name, al in game.get("alliances", {}).items():
+        repos["alliances"].save(name, al)
 
-    ops = [
-        UpdateOne(
-            {"_id": str(name)},
-            {"$set": {**al, "_id": str(name)}},
-            upsert=True,
-        )
-        for name, al in game.get("alliances", {}).items()
-    ]
+    for key in ID_LIST_KEYS:
+        repos[key].replace_all(game.get(key, []))
 
-    if ops:
-        db.alliances.bulk_write(
-            ops,
-            ordered=False,
-        )
+    for key in LOG_KEYS:
+        repos[key].replace_all(game.get(key, []))
 
-    meta: dict[str, Any] = {
-        "_id": "global",
-    }
-
-    for key in META_SCALAR_KEYS:
-        if key in game:
-            meta[key] = game[key]
-
-    for key in META_LIST_KEYS:
-        meta[key] = game.get(key, [])
-
-    db.meta.replace_one(
-        {"_id": "global"},
-        meta,
-        upsert=True,
-    )
+    repos["meta"].save(game)
 
 
 def _load_game_mongo() -> dict[str, Any]:
     db = get_db()
+    repos = build_repositories(db)
 
-    meta = db.meta.find_one({"_id": "global"})
+    meta = repos["meta"].get()
 
     if not meta:
         return {}
 
-    game: dict[str, Any] = {}
+    game: dict[str, Any] = dict(meta)
 
-    meta.pop("_id", None)
-    game.update(meta)
+    game["players"] = repos["players"].list_all()
+    game["alliances"] = repos["alliances"].list_all()
 
-    game["players"] = {str(doc.pop("_id")): doc for doc in db.players.find()}
+    for key in ID_LIST_KEYS:
+        game[key] = repos[key].list_all()
 
-    game["alliances"] = {str(doc.pop("_id")): doc for doc in db.alliances.find()}
+    for key in LOG_KEYS:
+        game[key] = repos[key].list_all()
 
     return game
 

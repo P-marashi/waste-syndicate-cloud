@@ -9,3 +9,9 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "mongomock>=4.3.0",
+]

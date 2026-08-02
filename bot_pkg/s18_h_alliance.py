@@ -84,8 +84,7 @@ def handle_create_alliance_prompt(chat_id: str) -> None:
             keypad=registry.alliance_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_alliance_name"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_alliance_name"})
     registry.send(
         chat_id,
         registry.T("alliance.create_prompt"),
@@ -133,7 +132,7 @@ def handle_create_alliance(chat_id: str, text: str) -> None:
         "log": [],
     }
     p["alliance"] = name
-    registry.game["chat_states"].pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(chat_id, "alliance_create", {"name": name})
     registry.save_game()
     registry.send(

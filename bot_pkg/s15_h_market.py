@@ -80,8 +80,7 @@ registry.handle_market_people = handle_market_people
 
 
 def handle_create_order_prompt(chat_id: str) -> None:
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_market_order"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_market_order"})
     registry.send(
         chat_id,
         registry.T("market.create_prompt"),
@@ -143,7 +142,7 @@ def handle_create_order(chat_id: str, text: str) -> None:
         "created_at": registry.iso(registry.now()),
     }
     registry.game.setdefault("market_orders", []).append(order)
-    registry.game["chat_states"].pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(chat_id, "market_create_order", order)
     registry.save_game()
     registry.send(
@@ -350,10 +349,10 @@ registry.system_sell_resource_from_text = system_sell_resource_from_text
 
 def handle_system_sell_select(chat_id: str, r: str) -> None:
     p = registry.get_player(chat_id)
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_system_sell_qty",
         "resource": r,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -373,10 +372,10 @@ registry.handle_system_sell_select = handle_system_sell_select
 
 
 def handle_system_sell_qty(chat_id: str, text: str) -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     r = st.get("resource")
     if r not in registry.RESOURCES:
-        registry.game["chat_states"].pop(chat_id, None)
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_market_menu(chat_id)
         return
     p = registry.get_player(chat_id)
@@ -396,7 +395,7 @@ def handle_system_sell_qty(chat_id: str, text: str) -> None:
         int(registry.game.get("market_supply", {}).get(r, 0)) + qty
     )
     net, note = registry.award_water(chat_id, gross, "system_sale", alliance_share=True)
-    registry.game["chat_states"].pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(
         chat_id, "system_sell", {"resource": r, "qty": qty, "gross": gross, "net": net}
     )
@@ -482,10 +481,10 @@ def handle_system_buy_select(chat_id: str, r: str) -> None:
             keypad=registry.system_buy_keypad(),
         )
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_system_buy_qty",
         "resource": r,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -507,10 +506,10 @@ registry.handle_system_buy_select = handle_system_buy_select
 
 
 def handle_system_buy_qty(chat_id: str, text: str) -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     r = st.get("resource")
     if r not in registry.RESOURCES:
-        registry.game["chat_states"].pop(chat_id, None)
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_market_menu(chat_id)
         return
     p = registry.get_player(chat_id)
@@ -536,7 +535,7 @@ def handle_system_buy_qty(chat_id: str, text: str) -> None:
             )
         return
     if supply <= 0:
-        registry.game["chat_states"].pop(chat_id, None)
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id,
             registry.T("market.system_buy_empty", res_name=registry.RES_NAME[r]),
@@ -570,7 +569,7 @@ def handle_system_buy_qty(chat_id: str, text: str) -> None:
     p.setdefault("stats", {})["market_buys"] = (
         int(p.get("stats", {}).get("market_buys", 0)) + 1
     )
-    registry.game["chat_states"].pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(
         chat_id,
         "system_buy",

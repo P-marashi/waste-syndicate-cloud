@@ -1,0 +1,34 @@
+# Standalone Redis stack — same shape as docker-compose.mongo.yml.
+#
+# Shared by docker-compose.dev.yml and docker-compose.prod.yml via the
+# external `waste_syndicate_net` network (created here). Holds only
+# ephemeral, non-authoritative state (chat_states, short-lived
+# caches) — safe to flush, never player progress:
+#
+#   docker compose -f docker-compose.redis.yml up -d
+#   REDIS_URL=redis://localhost:6379/0 USE_REDIS=1 uv run pytest
+#
+# Must be started before docker-compose.dev.yml / docker-compose.prod.yml
+# (compose doesn't support depends_on across separate files/projects).
+# Not required for local dev — USE_REDIS=0 (or an unreachable server)
+# falls back to an in-memory store automatically.
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: waste_syndicate_redis
+
+    restart: unless-stopped
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    volumes:
+      - ./data/redis:/data
+
+    networks:
+      - waste_syndicate_net
+
+networks:
+  waste_syndicate_net:
+    name: waste_syndicate_net

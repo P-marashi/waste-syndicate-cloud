@@ -1,7 +1,9 @@
 # Development stack: live code reload + a one-off test runner.
 #
-# Start Mongo first (once — leave it running across dev sessions):
+# Start Mongo and Redis first (once — leave them running across dev
+# sessions):
 #   docker compose -f docker-compose.mongo.yml up -d
+#   docker compose -f docker-compose.redis.yml up -d
 #
 # Then run the bot in dev mode (source is bind-mounted, so edits on the
 # host are picked up without rebuilding — restart the container to pick
@@ -29,6 +31,7 @@ services:
     environment:
       SYNDICATE_DEBUG: "1"
       MONGO_URI: ${MONGO_URI:-mongodb://waste_syndicate_mongodb:27017/}
+      REDIS_URL: ${REDIS_URL:-redis://waste_syndicate_redis:6379/0}
 
     volumes:
       - .:/app
@@ -59,6 +62,7 @@ services:
     environment:
       BOT_TOKEN: test-token
       USE_MONGO: "0"
+      USE_REDIS: "0"
 
     volumes:
       - .:/app

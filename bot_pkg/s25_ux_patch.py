@@ -71,10 +71,8 @@ registry.ux_global_nav_buttons = ux_global_nav_buttons
 
 def clear_chat_state(chat_id: str) -> bool:
     """اگر کاربر در ورودی متنی گیر کرده باشد، state پاک می\u200cشود."""
-    states = registry.game.setdefault("chat_states", {})
-    if chat_id in states:
-        states.pop(chat_id, None)
-        registry.save_game()
+    if registry.chat_state_repo.exists(chat_id):
+        registry.chat_state_repo.delete(chat_id)
         return True
     return False
 

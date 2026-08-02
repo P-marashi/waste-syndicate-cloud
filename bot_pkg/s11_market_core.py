@@ -211,8 +211,7 @@ def handle_create_barter_prompt(chat_id: str) -> None:
             chat_id, registry.T("barter.too_many"), keypad=registry.market_keypad()
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_barter_order"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_barter_order"})
     registry.send(
         chat_id,
         registry.T("barter.create_prompt"),
@@ -236,15 +235,13 @@ def handle_create_barter(chat_id: str, text: str) -> None:
     give, want = parsed
     active = [o for o in registry.open_barter_orders() if o.get("seller_id") == chat_id]
     if len(active) >= 3:
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id, registry.T("barter.too_many"), keypad=registry.market_keypad()
         )
         return
     if not registry.has_resources(p, give):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id,
             registry.T(
@@ -266,7 +263,7 @@ def handle_create_barter(chat_id: str, text: str) -> None:
         "expires_at": registry.iso(registry.now() + timedelta(hours=12)),
     }
     registry.game.setdefault("barter_orders", []).append(order)
-    registry.game["chat_states"].pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(chat_id, "barter_create", order)
     registry.save_game()
     registry.send(
@@ -562,8 +559,7 @@ def handle_create_rental_prompt(chat_id: str) -> None:
             chat_id, registry.T("rental.active_limit"), keypad=registry.market_keypad()
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_rental_order"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_rental_order"})
     registry.send(
         chat_id,
         registry.T("rental.create_prompt"),
@@ -586,15 +582,13 @@ def handle_create_rental(chat_id: str, text: str) -> None:
         return
     give, repay, duration = parsed
     if not registry.rental_profit_ok(give, repay):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id, registry.T("rental.profit_limit"), keypad=registry.market_keypad()
         )
         return
     if not registry.has_resources(p, give):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id,
             registry.T(
@@ -619,7 +613,7 @@ def handle_create_rental(chat_id: str, text: str) -> None:
         "created_at": registry.iso(registry.now()),
     }
     registry.game.setdefault("resource_rentals", []).append(c)
-    registry.game["chat_states"].pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(chat_id, "rental_create", c)
     registry.save_game()
     registry.send(

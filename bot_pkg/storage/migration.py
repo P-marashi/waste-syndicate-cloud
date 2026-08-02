@@ -22,7 +22,9 @@ def migrate_game(g: dict[str, Any]) -> dict[str, Any]:
     base.setdefault("resource_rentals", [])
     base.setdefault("next_rental_id", 1)
 
-    base.setdefault("chat_states", {})
+    # Migrated out to Redis (ChatStateRepository) — drop any leftover
+    # copy from an older save/meta doc instead of carrying it forward.
+    base.pop("chat_states", None)
 
     base.setdefault(
         "season",

@@ -287,8 +287,7 @@ def handle_admin_broadcast_prompt(chat_id: str, sender_id: str = "") -> None:
             keypad=registry.main_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_admin_broadcast"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_admin_broadcast"})
     registry.send(
         chat_id,
         registry.T("admin.broadcast_prompt"),
@@ -317,8 +316,7 @@ def handle_admin_broadcast(chat_id: str, text: str, sender_id: str = "") -> None
             keypad=registry.main_keypad(cid),
         )
         count += 1
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     registry.send(
         chat_id,
         registry.T("admin.broadcast_done", count=count),
@@ -366,9 +364,9 @@ def handle_admin_rename_player_prompt(chat_id: str, sender_id: str = "") -> None
             keypad=registry.main_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_admin_rename_player_target"
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -392,13 +390,12 @@ def handle_admin_rename_player_target(
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_admin_rename_player_name",
         "target": target,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -415,7 +412,7 @@ registry.handle_admin_rename_player_target = handle_admin_rename_player_target
 def handle_admin_rename_player_name(
     chat_id: str, text: str, sender_id: str = ""
 ) -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     target = st.get("target")
     p = registry.game.get("players", {}).get(target or "")
     new_name = registry.clean_name(text, 24)
@@ -425,8 +422,7 @@ def handle_admin_rename_player_name(
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
     if not new_name:
         registry.send(
@@ -450,8 +446,7 @@ def handle_admin_rename_player_name(
     registry.admin_audit(
         chat_id, "rename_player", {"target": target, "old": old_name, "new": new_name}
     )
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     registry.send(
         target,
         registry.T("admin.rename_player_notice", old=old_name, new=new_name),
@@ -475,9 +470,9 @@ def handle_admin_rename_alliance_prompt(chat_id: str, sender_id: str = "") -> No
             keypad=registry.main_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_admin_rename_alliance_target"
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -499,13 +494,12 @@ def handle_admin_rename_alliance_target(
             registry.T("admin.alliance_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_admin_rename_alliance_name",
         "old_name": old_name,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -520,7 +514,7 @@ registry.handle_admin_rename_alliance_target = handle_admin_rename_alliance_targ
 def handle_admin_rename_alliance_name(
     chat_id: str, text: str, sender_id: str = ""
 ) -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     old_name = st.get("old_name")
     new_name = registry.clean_name(text, 24)
     if not old_name or old_name not in registry.game.get("alliances", {}):
@@ -529,8 +523,7 @@ def handle_admin_rename_alliance_name(
             registry.T("admin.alliance_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
     if not new_name:
         registry.send(
@@ -556,8 +549,7 @@ def handle_admin_rename_alliance_name(
         if p.get("alliance") == old_name:
             p["alliance"] = new_name
     registry.admin_audit(chat_id, "rename_alliance", {"old": old_name, "new": new_name})
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     for member in al.get("members", []):
         if member in registry.game.get("players", {}):
             registry.send(
@@ -588,8 +580,7 @@ def handle_admin_ban_prompt(chat_id: str, sender_id: str = "") -> None:
             keypad=registry.main_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_admin_ban_target"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_admin_ban_target"})
     registry.send(
         chat_id,
         registry.T("admin.ban_target_prompt"),
@@ -610,13 +601,12 @@ def handle_admin_ban_target(chat_id: str, text: str, sender_id: str = "") -> Non
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_admin_ban_reason",
         "target": target,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -629,7 +619,7 @@ registry.handle_admin_ban_target = handle_admin_ban_target
 
 
 def handle_admin_ban_reason(chat_id: str, text: str, sender_id: str = "") -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     target = st.get("target")
     p = registry.game.get("players", {}).get(target or "")
     if not target or not p:
@@ -638,8 +628,7 @@ def handle_admin_ban_reason(chat_id: str, text: str, sender_id: str = "") -> Non
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
     reason = registry.message_preview(text or "بدون دلیل ثبت\u200cشده", 180)
     p["banned"] = True
@@ -648,8 +637,7 @@ def handle_admin_ban_reason(chat_id: str, text: str, sender_id: str = "") -> Non
     p["banned_by"] = chat_id
     registry.log_action(target, "admin_ban", {"admin": chat_id, "reason": reason})
     registry.admin_audit(chat_id, "ban_player", {"target": target, "reason": reason})
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     registry.send(
         target,
         registry.T("admin.ban_notice_to_player", reason=reason),
@@ -675,8 +663,7 @@ def handle_admin_unban_prompt(chat_id: str, sender_id: str = "") -> None:
             keypad=registry.main_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_admin_unban_target"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_admin_unban_target"})
     registry.send(
         chat_id,
         registry.T("admin.unban_target_prompt"),
@@ -697,8 +684,7 @@ def handle_admin_unban_target(chat_id: str, text: str, sender_id: str = "") -> N
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
     p = registry.game["players"][target]
     p["banned"] = False
@@ -707,8 +693,7 @@ def handle_admin_unban_target(chat_id: str, text: str, sender_id: str = "") -> N
     p["banned_by"] = None
     registry.log_action(target, "admin_unban", {"admin": chat_id})
     registry.admin_audit(chat_id, "unban_player", {"target": target})
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     registry.send(
         target,
         registry.T("admin.unban_notice_to_player"),
@@ -847,8 +832,7 @@ def handle_admin_penalty_prompt(chat_id: str, sender_id: str = "") -> None:
             keypad=registry.main_keypad(chat_id),
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_admin_penalty_target"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_admin_penalty_target"})
     registry.send(
         chat_id,
         registry.T("admin.penalty_target_prompt"),
@@ -869,13 +853,12 @@ def handle_admin_penalty_target(chat_id: str, text: str, sender_id: str = "") ->
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_admin_penalty_details",
         "target": target,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -888,7 +871,7 @@ registry.handle_admin_penalty_target = handle_admin_penalty_target
 
 
 def handle_admin_penalty_details(chat_id: str, text: str, sender_id: str = "") -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     target = st.get("target")
     if not target or target not in registry.game.get("players", {}):
         registry.send(
@@ -896,8 +879,7 @@ def handle_admin_penalty_details(chat_id: str, text: str, sender_id: str = "") -
             registry.T("admin.player_not_found"),
             keypad=registry.admin_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
     penalties, reason = registry.parse_admin_penalty(text)
     if not penalties:
@@ -922,8 +904,7 @@ def handle_admin_penalty_details(chat_id: str, text: str, sender_id: str = "") -
     p["admin_notes"] = p["admin_notes"][-30:]
     registry.log_action(target, "admin_penalty", note)
     registry.admin_audit(chat_id, "penalty_player", {"target": target, **note})
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     registry.send(
         target,
         registry.T(

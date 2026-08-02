@@ -193,8 +193,7 @@ def handle_enter_referral(chat_id: str) -> None:
             chat_id, registry.T("invite.already"), keypad=registry.main_keypad(chat_id)
         )
         return
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_referral_code"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_referral_code"})
     registry.send(
         chat_id,
         registry.T("invite.prompt"),
@@ -207,8 +206,7 @@ registry.handle_enter_referral = handle_enter_referral
 
 def handle_referral_code(chat_id: str, text: str) -> None:
     ok = registry.apply_referral(chat_id, text)
-    registry.game["chat_states"].pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     if ok:
         inviter_id = registry.game["players"][chat_id].get("referred_by")
         registry.send(

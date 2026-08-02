@@ -22,7 +22,6 @@ SCALAR_KEYS = (
     "last_group_boss_report_at",
     "last_group_rank1",
     "season",
-    "chat_states",
     "next_offset_id",
 )
 

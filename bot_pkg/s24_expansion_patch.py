@@ -993,10 +993,10 @@ def handle_smuggler_select(chat_id: str, text: str) -> None:
             keypad=registry.market_keypad(),
         )
         return
-    registry.game.setdefault("chat_states", {})[chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_smuggler_qty",
         "res": res,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -1011,11 +1011,11 @@ registry.handle_smuggler_select = handle_smuggler_select
 
 
 def handle_smuggler_qty(chat_id: str, text: str) -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     res = st.get("res")
     sm = registry.maybe_setup_night_smuggler()
     if not sm or res not in registry.RESOURCES:
-        registry.game.get("chat_states", {}).pop(chat_id, None)
+        registry.chat_state_repo.delete(chat_id)
         return registry.handle_night_smuggler(chat_id)
     qty = registry.safe_int(text, -1)
     if qty <= 0:
@@ -1037,7 +1037,7 @@ def handle_smuggler_qty(chat_id: str, text: str) -> None:
             "❌ سقف خرید یا موجودی قاچاقچی تمام شده.",
             keypad=registry.market_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
+        registry.chat_state_repo.delete(chat_id)
         return
     price = int(sm.get("prices", {}).get(res, registry.BASE_PRICE[res]))
     total = qty * price
@@ -1056,7 +1056,7 @@ def handle_smuggler_qty(chat_id: str, text: str) -> None:
     p.setdefault("stats", {})["smuggler_buys"] = (
         int(p.get("stats", {}).get("smuggler_buys", 0)) + 1
     )
-    registry.game.get("chat_states", {}).pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     if all(int(v) <= 0 for v in sm.get("stock", {}).values()) and (
         not sm.get("soldout_announced")
     ):
@@ -1326,9 +1326,9 @@ registry.handle_bounty_board = handle_bounty_board
 
 
 def handle_create_bounty_prompt(chat_id: str) -> None:
-    registry.game.setdefault("chat_states", {})[chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_bounty_order"
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -1420,8 +1420,7 @@ def handle_create_bounty(chat_id: str, text: str) -> None:
     p.setdefault("stats", {})["bounty_created"] = (
         int(p.get("stats", {}).get("bounty_created", 0)) + 1
     )
-    registry.game.get("chat_states", {}).pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     msg = f"🎯 قرارداد جایزه ثبت شد!\n━━━━━━━━━━━━\nهدف: {registry.player_name(target_id)}\nجایزه: {registry.fmt_res_dict(reward)}\n\nهرکس تا ۱۲ ساعت آینده هدف را با غارت موفق بزند، جایزه را می\u200cگیرد."
     registry.send(chat_id, msg, keypad=registry.main_keypad(chat_id))
     registry.send_group_radio(
@@ -2219,7 +2218,7 @@ registry.season_special_awards = season_special_awards
 
 
 def handle_state(chat_id: str, text: str, sender_id: str = "") -> bool:
-    st = registry.game.get("chat_states", {}).get(chat_id)
+    st = registry.chat_state_repo.get(chat_id)
     if st:
         state = st.get("state")
         if state == "awaiting_smuggler_qty":

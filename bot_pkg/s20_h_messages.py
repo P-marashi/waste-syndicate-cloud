@@ -59,8 +59,7 @@ registry.handle_messages_menu = handle_messages_menu
 
 
 def handle_private_message_target_prompt(chat_id: str) -> None:
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_private_message_target"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_private_message_target"})
     registry.send(
         chat_id,
         registry.T("messages.target_prompt"),
@@ -79,8 +78,7 @@ def handle_private_message_target(chat_id: str, text: str) -> None:
             registry.T("messages.target_not_found"),
             keypad=registry.private_message_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
     if target == chat_id:
         registry.send(
@@ -88,13 +86,12 @@ def handle_private_message_target(chat_id: str, text: str) -> None:
             registry.T("messages.cannot_self"),
             keypad=registry.private_message_keypad(),
         )
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         return
-    registry.game["chat_states"][chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "awaiting_private_message_body",
         "target": target,
-    }
+    })
     registry.save_game()
     registry.send(
         chat_id,
@@ -107,11 +104,10 @@ registry.handle_private_message_target = handle_private_message_target
 
 
 def handle_private_message_body(chat_id: str, text: str) -> None:
-    st = registry.game.get("chat_states", {}).get(chat_id, {})
+    st = (registry.chat_state_repo.get(chat_id) or {})
     target = st.get("target")
     if not target or target not in registry.game.get("players", {}):
-        registry.game.get("chat_states", {}).pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id,
             registry.T("messages.target_not_found"),
@@ -142,7 +138,7 @@ def handle_private_message_body(chat_id: str, text: str) -> None:
     registry.game["private_messages"] = messages_service.trim_message_log(
         registry.game["private_messages"], registry.MAX_PRIVATE_MESSAGES
     )
-    registry.game.get("chat_states", {}).pop(chat_id, None)
+    registry.chat_state_repo.delete(chat_id)
     registry.log_action(
         chat_id, "private_message_sent", {"to": target, "message_id": mid}
     )

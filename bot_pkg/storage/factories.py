@@ -127,6 +127,5 @@ def default_game() -> dict[str, Any]:
         "last_group_rank1": None,
         "group_radio_log": [],
         "season": default_season(1),
-        "chat_states": {},
         "next_offset_id": None,
     }

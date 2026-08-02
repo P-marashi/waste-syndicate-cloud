@@ -35,6 +35,11 @@ registry.USE_MONGO = os.getenv("USE_MONGO", "1") == "1"
 registry.MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 registry.MONGO_DB = os.getenv("MONGO_DB", "waste_syndicate")
 
+# Ephemeral state only (chat_states, short-lived caches) — never
+# player progress. See storage/redis_client.py.
+registry.USE_REDIS = os.getenv("USE_REDIS", "1") == "1"
+registry.REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
 # =============================================================================
 # Game Configuration
 # =============================================================================

@@ -1,7 +1,8 @@
 # Production stack.
 #
-# Start Mongo first:
+# Start Mongo and Redis first:
 #   docker compose -f docker-compose.mongo.yml up -d
+#   docker compose -f docker-compose.redis.yml up -d
 #
 # Then:
 #   docker compose -f docker-compose.prod.yml up -d --build
@@ -21,6 +22,7 @@ services:
 
     environment:
       MONGO_URI: ${MONGO_URI:-mongodb://waste_syndicate_mongodb:27017/}
+      REDIS_URL: ${REDIS_URL:-redis://waste_syndicate_redis:6379/0}
 
     volumes:
       - ./texts:/app/texts:ro

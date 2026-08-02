@@ -2,37 +2,31 @@ from .registry import registry
 
 
 def handle_state(chat_id: str, text: str, sender_id: str = "") -> bool:
-    st = registry.game.get("chat_states", {}).get(chat_id)
+    st = registry.chat_state_repo.get(chat_id)
     if not st:
         return False
     if text == registry.B("main_menu"):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_profile(chat_id)
         return True
     if text in ["/start", "شروع"]:
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_start(chat_id)
         return True
     if text == registry.B("back_main"):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_profile(chat_id)
         return True
     if text == registry.B("back_market"):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_market_menu(chat_id)
         return True
     if text == registry.B("alliance_manage"):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_alliance_manage(chat_id)
         return True
     if text == registry.B("admin_panel") and registry.is_admin(chat_id, sender_id):
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.handle_admin_panel(chat_id, sender_id)
         return True
     state = st.get("state")
@@ -206,7 +200,7 @@ def dispatch(
         return registry.handle_buildings_menu(chat_id)
     if text.startswith("⬆️ ارتقا به سطح"):
         # User clicked upgrade button on building detail page
-        bk = registry.game.get("chat_states", {}).get(chat_id, {}).get("last_building")
+        bk = (registry.chat_state_repo.get(chat_id) or {}).get("last_building")
         if bk:
             return registry.handle_upgrade(chat_id, bk)
     if registry.building_key_from_text(text):
@@ -312,8 +306,7 @@ def dispatch(
         return registry.handle_achievements(chat_id)
     if text == registry.B("search_player"):
         p = registry.get_player(chat_id)
-        registry.game["chat_states"][chat_id] = {"state": "awaiting_player_search"}
-        registry.save_game()
+        registry.chat_state_repo.save(chat_id, {"state": "awaiting_player_search"})
         registry.send(
             chat_id,
             "🔍 اسم بازیکن رو بگو تا پروفایلش رو ببینم:",

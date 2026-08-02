@@ -496,8 +496,7 @@ def handle_search_player(chat_id: str, query: str) -> None:
         f"⚔️ غارت‌ها: {raids_done} | 🛡️ دفاع‌ها: {defends}\n"
         f"━━━━━━━━━━━━\n"
     )
-    registry.game["chat_states"].pop(chat_id, None)
-    registry.save_game()
+    registry.chat_state_repo.delete(chat_id)
     registry.send(
         chat_id,
         text,
@@ -509,7 +508,7 @@ registry.handle_search_player = handle_search_player
 
 
 def handle_state(chat_id: str, text: str, sender_id: str = "") -> bool:
-    st = registry.game.get("chat_states", {}).get(chat_id)
+    st = registry.chat_state_repo.get(chat_id)
     if st and (text or "").strip() in registry.ux_global_nav_buttons():
         registry.clear_chat_state(chat_id)
         return False
@@ -532,7 +531,7 @@ def dispatch(
     if text == registry.B("more") or text == registry.B("more_menu"):
         return registry.handle_more_menu(chat_id)
     if (
-        registry.game.get("chat_states", {}).get(chat_id)
+        registry.chat_state_repo.get(chat_id)
         and text in registry.ux_global_nav_buttons()
     ):
         registry.clear_chat_state(chat_id)

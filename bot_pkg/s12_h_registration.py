@@ -48,7 +48,7 @@ def ensure_registered(chat_id: str, text: str, sender_name: str) -> bool:
     p = registry.get_player(chat_id)
     if registry.extract_ref_from_start(text):
         p["pending_referral"] = registry.extract_ref_from_start(text)
-    state = registry.game.setdefault("chat_states", {}).get(chat_id, {}).get("state")
+    state = (registry.chat_state_repo.get(chat_id) or {}).get("state")
     if state == "awaiting_name":
         if registry.is_reserved_registration_name(text):
             registry.send(
@@ -69,8 +69,7 @@ def ensure_registered(chat_id: str, text: str, sender_name: str) -> bool:
         p["name"] = name
         p["registered"] = True
         p["registered_at"] = registry.iso(registry.now())
-        registry.game["chat_states"][chat_id] = {"state": "awaiting_referral_optional"}
-        registry.save_game()
+        registry.chat_state_repo.save(chat_id, {"state": "awaiting_referral_optional"})
         registry.send(
             chat_id,
             registry.T("registration.ask_ref"),
@@ -83,8 +82,7 @@ def ensure_registered(chat_id: str, text: str, sender_name: str) -> bool:
         if code != registry.B("skip") or pending:
             registry.apply_referral(chat_id, pending or code)
         p["pending_referral"] = None
-        registry.game["chat_states"].pop(chat_id, None)
-        registry.save_game()
+        registry.chat_state_repo.delete(chat_id)
         registry.send(
             chat_id,
             registry.T(
@@ -100,8 +98,7 @@ def ensure_registered(chat_id: str, text: str, sender_name: str) -> bool:
         return False
     if p.get("registered"):
         return True
-    registry.game["chat_states"][chat_id] = {"state": "awaiting_name"}
-    registry.save_game()
+    registry.chat_state_repo.save(chat_id, {"state": "awaiting_name"})
     registry.send(chat_id, registry.T("registration.ask_name"), remove_keypad=True)
     return False
 

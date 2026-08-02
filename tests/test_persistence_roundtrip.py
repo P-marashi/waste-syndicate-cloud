@@ -48,7 +48,6 @@ def test_save_then_load_roundtrips_players_and_lists(game_env):
         "group_radio_log": [],
         "system_stock_log": [],
         "next_order_id": 2,
-        "chat_states": {},
     }
 
     save_game()
@@ -86,7 +85,6 @@ def test_save_game_removes_deleted_order_from_next_load(game_env):
         "group_radio_log": [],
         "system_stock_log": [],
         "next_order_id": 3,
-        "chat_states": {},
     }
     save_game()
 

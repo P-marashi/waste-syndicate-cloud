@@ -89,10 +89,10 @@ def handle_building_detail(chat_id: str, bk: str) -> None:
     max_lv = max(bd["levels"].keys())
 
     # Store last building in chat state for upgrade
-    registry.game.setdefault("chat_states", {})[chat_id] = {
+    registry.chat_state_repo.save(chat_id, {
         "state": "building_detail",
         "last_building": bk,
-    }
+    })
 
     # Get current level's production/effect
     current_effect = ""

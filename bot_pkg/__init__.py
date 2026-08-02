@@ -6,14 +6,17 @@ set by earlier modules (that's how the EXPANSION PATCH / UX PATCH
 sections work).
 """
 
+from .core import config  # noqa: F401
 from . import (
-    s01_config,  # noqa: F401
     s02_texts,  # noqa: F401
     s03_gamedata,  # noqa: F401
     s04_state,  # noqa: F401
     s05_utils,  # noqa: F401
     s06_persistence,  # noqa: F401
-    s07_rubika_api,  # noqa: F401
+)
+from .infra import rubika_api  # noqa: F401
+from .presentation import keypads  # noqa: F401
+from . import (
     s08_player,  # noqa: F401
     s09_alliance_economy,  # noqa: F401
     s10_world_features,  # noqa: F401

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from .registry import registry
+from ..registry import registry
 
 # =============================================================================
 # Bot
@@ -17,7 +17,7 @@ registry.DEBUG = os.getenv("SYNDICATE_DEBUG", "1") == "1"
 # Files
 # =============================================================================
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 registry.SAVE_FILE = Path(
     os.getenv("SYNDICATE_SAVE", BASE_DIR / "waste_syndicate_save.json")

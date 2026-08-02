@@ -27,7 +27,7 @@ Usage:
 """
 
 from .collections import ID_LIST_KEYS, LOG_KEYS, build_repositories
-from .database import get_db
+from ..infra.db import get_db
 
 ALL_LIST_KEYS = ID_LIST_KEYS + LOG_KEYS
 

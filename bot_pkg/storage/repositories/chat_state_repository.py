@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ..redis_client import get_redis
+from ...infra.redis_client import get_redis
 
 _PREFIX = "chat_state:"
 _DEFAULT_TTL = 3600  # 1h of inactivity silently clears an in-progress flow

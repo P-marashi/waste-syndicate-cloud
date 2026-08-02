@@ -1,54 +1,25 @@
 from typing import Any
 
 from ..registry import registry
+from ..services import player_service
 
 
 def honor_title(honor: int) -> str:
-    for lo, hi, title in registry.HONOR_TITLES:
-        if lo <= honor <= hi:
-            return title
-
-    return "ناشناخته"
+    return player_service.honor_title(honor, registry.HONOR_TITLES)
 
 
-def level_info(
-    p: dict[str, Any],
-) -> tuple[int, int, int, str]:
-    lv = int(p.get("level", 1))
-    xp = int(p.get("xp", 0))
+def level_info(p: dict[str, Any]) -> tuple[int, int, int, str]:
+    return player_service.level_info(int(p.get("level", 1)), int(p.get("xp", 0)), registry.LEVELS)
 
-    max_xp = registry.LEVELS.get(lv, {}).get("xp", 9999)
-    label = registry.LEVELS.get(lv, {}).get("label", "؟")
 
-    return (
-        lv,
-        xp,
-        max_xp,
-        label,
+def add_xp(p: dict[str, Any], amount: int) -> bool:
+    new_level, new_xp, leveled = player_service.apply_xp(
+        int(p["level"]),
+        int(p.get("xp", 0)),
+        amount,
+        registry.LEVELS,
+        xp_multiplier=registry.event_mod("xp", 1.0),
     )
-
-
-def add_xp(
-    p: dict[str, Any],
-    amount: int,
-) -> bool:
-    amount = int(amount * registry.event_mod("xp", 1.0))
-
-    p["xp"] = int(p.get("xp", 0)) + amount
-
-    leveled = False
-
-    while p["level"] < 10:
-        max_xp = registry.LEVELS.get(
-            p["level"],
-            {},
-        ).get("xp", 9999)
-
-        if p["xp"] < max_xp:
-            break
-
-        p["xp"] -= max_xp
-        p["level"] += 1
-        leveled = True
-
+    p["level"] = new_level
+    p["xp"] = new_xp
     return leveled

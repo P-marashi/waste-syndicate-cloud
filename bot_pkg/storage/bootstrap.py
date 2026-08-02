@@ -34,7 +34,7 @@ from bot_pkg.storage.bootstrap import *
 """
 
 from ..registry import registry
-from .database import get_db
+from ..infra.db import get_db
 from .factories import default_game, default_season, generate_ref_code, new_player
 from .migration import migrate_game
 from .persistence import load_game, save_game

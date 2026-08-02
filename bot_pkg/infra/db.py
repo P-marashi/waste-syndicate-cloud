@@ -3,7 +3,7 @@
 # repositories/meta_repository.py (SCALAR_KEYS) and collections.py
 # (ID_LIST_KEYS / LOG_KEYS).
 from ..registry import registry
-from .repositories.meta_repository import SCALAR_KEYS as META_SCALAR_KEYS  # noqa: F401
+from ..storage.repositories.meta_repository import SCALAR_KEYS as META_SCALAR_KEYS  # noqa: F401
 
 _mongo_client = None
 _db = None
@@ -24,7 +24,7 @@ def get_db():
 
     _db = _mongo_client[registry.MONGO_DB]
 
-    from .collections import build_repositories
+    from ..storage.collections import build_repositories
 
     build_repositories(_db, ensure_indexes=True)
 

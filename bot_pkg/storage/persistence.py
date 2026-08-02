@@ -3,7 +3,7 @@ from typing import Any
 
 from ..registry import registry
 from .collections import ID_LIST_KEYS, LOG_KEYS, build_repositories
-from .database import get_db
+from ..infra.db import get_db
 from .factories import default_game
 from .migration import migrate_game
 

@@ -1,6 +1,6 @@
 import os
 
-# Must happen before anything imports bot_pkg (s01_config.py reads
+# Must happen before anything imports bot_pkg (core/config.py reads
 # BOT_TOKEN eagerly at import time).
 os.environ.setdefault("BOT_TOKEN", "test-token")
 os.environ.setdefault("USE_MONGO", "0")

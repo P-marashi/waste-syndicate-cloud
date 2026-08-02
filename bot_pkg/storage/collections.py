@@ -4,7 +4,7 @@ and any future service code should get repositories from here instead of
 touching `db["some_collection"]` directly.
 """
 
-from .database import get_db
+from ..infra.db import get_db
 from .repositories.alliance_repository import AllianceRepository
 from .repositories.id_list_repository import IdListRepository
 from .repositories.log_repository import LogRepository

@@ -1,31 +1,14 @@
-from datetime import timedelta
 from typing import Any
 
-from ..registry import registry
+from ..services import player_service
+from ..utils.datetime import fromiso, iso, now
 
 
-def cd_remaining(
-    p: dict[str, Any],
-    key: str,
-) -> float:
+def cd_remaining(p: dict[str, Any], key: str) -> float:
     if not p.get(f"{key}_cd"):
         return 0
-
-    return max(
-        0,
-        (
-            registry.fromiso(
-                p[f"{key}_cd"],
-                registry.now(),
-            )
-            - registry.now()
-        ).total_seconds(),
-    )
+    return player_service.seconds_until(fromiso(p[f"{key}_cd"], now()), now())
 
 
-def set_cd(
-    p: dict[str, Any],
-    key: str,
-    seconds: float,
-) -> None:
-    p[f"{key}_cd"] = registry.iso(registry.now() + timedelta(seconds=int(seconds)))
+def set_cd(p: dict[str, Any], key: str, seconds: float) -> None:
+    p[f"{key}_cd"] = iso(player_service.future_timestamp(now(), seconds))
